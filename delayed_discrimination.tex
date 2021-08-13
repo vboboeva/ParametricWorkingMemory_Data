@@ -1,0 +1,143 @@
+\documentclass[aps,pre,reprint,onecolumn,notitlepage,superscriptaddress,nofootinbib]{revtex4-2}
+%\documentclass[11pt]{article}
+\usepackage{amssymb,bm,bbm}%,dsfont}
+\usepackage{amsmath,eucal,cancel} \allowdisplaybreaks
+\usepackage{pdfpages}
+\usepackage{verbatim,enumerate}
+\makeatletter
+\AtBeginDocument{\let\LS@rot\@undefined}
+\makeatother
+
+% \usepackage[table, usenames, svgnames, dvipsnames]{xcolor}
+%\usepackage{makecell, cellspace, caption}
+\usepackage{multirow,graphicx,epstopdf}
+	\graphicspath{{pictures/}}
+\usepackage{array,longtable,booktabs,colortbl}
+\newcolumntype{L}[1]{>{\raggedright\let\newline\\\arraybackslash\hspace{0pt}}p{#1}}
+\newcolumntype{C}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}p{#1}}
+\newcolumntype{M}[1]{>{\centering\let\newline\\\arraybackslash\hspace{0pt}}m{#1}}
+\newcolumntype{R}[1]{>{\raggedleft\let\newline\\\arraybackslash\hspace{0pt}}p{#1}}
+% \hyphenpenalty=10000
+% \hbadness=10000
+
+
+\bibliographystyle{apsrev4-1}
+\usepackage{footmisc}
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    % citecolor=PineGreen,
+    filecolor=magenta,
+    urlcolor=cyan,
+}
+		
+	
+%\renewcommand{\theequation}{S\arabic{equation}}
+\newcommand{\bra}[1]{\mbox{$\langle #1|$}}
+\newcommand{\ket}[1]{\mbox{$|#1\rangle$}}
+\newcommand{\braket}[2]{\mbox{$\langle #1|#2\rangle$}}
+\newcommand{\ketbra}[2]{\mbox{$|#1\rangle\langle #2|$}}
+\renewcommand{\arraystretch}{1.5}
+\definecolor{lb}{rgb}{.804,.851,.922}
+\newcommand{\ct}[1]{{\bf \textsf{#1}}}
+\newcommand{\csl}[1]{{\sl \textsf{#1}}}
+\newcommand{\XI}{X^{(i)}}
+\newcommand{\XJ}{X^{(j)}}
+\newcommand{\eqMF}{\stackrel{\tiny{\mbox{MF}}}{=}}
+\newcommand{\qeff}{q_{\mbox{\scriptsize eff}}}
+%\renewcommand{\eqref}[1]{[\ref{#1}]}
+\newcommand{\red}[1]{{\color{red}#1}}
+\newcommand{\blue}[1]{{\color{blue}#1}}
+\newcommand{\tr}{^\top}
+\newcommand{\px}[1]{\partial_{x_{#1}}}
+\newcommand{\id}{\ensuremath{\mathbbm{1}}}
+
+\newcommand{\nablav}{\nabla_{\bar{v}}}
+\newcommand{\nablax}{\nabla_{\bar{x}}}
+\DeclareMathOperator*{\argmax}{argmax}
+\DeclareMathOperator*{\argmin}{argmin}
+\DeclareMathOperator*{\prob}{Prob}
+\newcommand{\e}{{\rm e}}
+\newcommand{\iu}{{\rm i}}
+\newcommand{\du}{{\rm d}}
+
+\graphicspath{{pictures/}}
+
+\begin{document}
+
+	\title{Delayed discrimination with random input}
+	\noaffiliation
+	\author{A. Pezzotta} %  $\rightarrow$ J. Briscoe, R. Per\'ez-Carrasco
+	\affiliation{Developmental Dynamics Laboratory, The Francis Crick Institute, 1 Midland Road, NW1 1AT London UK}
+	
+	\date{\today}
+	
+	\begin{abstract}
+		blabla
+	\end{abstract}
+
+	\maketitle
+
+	\section*{Some sort of introduction}
+
+	Contraction bias is an effect emerging in delayed discrimination tasks [more general than that?], whereby the first stimulus in the pair is perceived to be larger when it is ``small'' and, viceversa, it is perceived smaller when it is ``large''.
+	This effect is shown to be strongly influenced by the statistics of the magnitude of the stimuli presented [REF].
+	A natural framework that accounts for such a statistical effect is Bayesian inference. In [REF], it is shown that contraction bias can emerge in a Bayes-optimal strategy, where the statistics of the neural representation of the stimulus, given the actual presented stimulus, represents the likelihood function.
+	
+	Moreover, the decision making exhibits clear history-dependent effects: the classification of a pair of stimuli in one trial, particularly depends on the pair of stimuli in up to few trials before.
+	Though the Bayesian setting employed in [REF] can be extended {\color{red} [I THINK WE SHOULD DO THIS CALCULATION]} to account for history effects, it is hard to relate to a possible neuronal implementations.
+
+	Our continuous attractor network suggests an easier mechanistic interpretation.
+	In the parameter regimes that reproduce qualitative features of real data, Sec.~(...), our CANN model produces a dynamics where the bump of activity ``jumps'' between different positions.
+
+	{\color{red}[here should go a discussion of the data of how many times the bump stays at the current stimulus, the previous, the one before, etc]}
+
+
+	\section{The simplified model}
+
+	In order to illustrate the statistical origin of contraction bias consistent with our CANN, we consider a simplified model of its performance and short-term memory effects.
+
+	By definition of the delayed discrimination task, optimal decision maker produces a label $y^{(t)}$ equal to 0 if $s_a^{(t)} < s_b^{(t)}$, and 1 if $s_a^{(t)} > s_b^{(t)}$; the impossible cases $s_a^{(t)} = s_b^{(t)}$ are excluded from the set of stimuli, but would produce a label which is either 0 or 1 with 50\% probability. That is
+	\begin{equation}
+		y(s_a, s_b) = \left\{
+			\begin{array}{cl}
+				1 & \mbox{if } s_a > s_b \\
+				0 & \mbox{if } s_a < s_b \\
+				\sim {\rm Bernoulli}(1/2) & \mbox{if } s_a = s_b
+			\end{array}
+		\right.
+	\end{equation}
+
+	In this simplified scheme, at each trial $t$, the two stimuly $s_a^{(t)}$ and $s_b^{(t)}$ are perfectly perceived with a finite probability $1 - \epsilon$, with $\epsilon < 1$.
+	Under the assumption that the decision maker behaves optimally based on the perveived stimuli, a correct perception would necessarily lead to the correct label.
+
+	However, with probability $\epsilon$, the first stimulus is randomly selected from a buffer of stimuli, i.e. is replaced by a random variable $\hat{s}_a$ that has a probability distribution $\pi_t$.
+	
+
+	In our CANN model, the probability distribution $\pi_t$ emerges as an effect of the interaction within and between the readout {\color{red}[what was the name?]} network and the history network, which represents the PPC.
+	As shown above, after the presentation of the first stimulus in the trial the bump of activity is seen to jump to the position encoding one of the previously presented stimuli, $s_b^{(t-1)}$, $s_a^{(t-1)}$, $s_b^{(t-2)}$, etc (with decreasing probability, as in Fig.\,[FIGURE]).
+	Then, in calculating the performance in the task, we can take $\pi_t$ to be the marginal distribution of the stimulus $s_a$ or $s_b$ across trials, as in the histogram in Fig.\,[FIGURE].
+	The probability of a misclassification is then given by the probability that, given the pair $(s_a^{(t)},s_b^{(t)})$, at trial $t$, 1) the first stimulus is replaced by a random value, which happens with probability $\epsilon$, and 2) the value of $\hat{s}_a$ replaced is larger than $s_b^{(t)}$ when $s_a^{(t)}$ is smaller and viceversa.
+
+	Therefore, the probability of an error at trial $t$ is
+	\begin{equation}\label{eq:perf-game}
+		\prob\Big\{{\rm error}\ \Big|\ s_a^{(t)}=s_a,\,s_b^{(t)}=s_b \Big\} = \epsilon \cdot
+		\left\{
+			\begin{array}{cl}
+				\pi_t(s_b)/2 + \sum_{s < s_b} \pi_t(s) & \mbox{if } s_a > s_b \\[1ex]
+				\pi_t(s_b)/2 + \sum_{s > s_b} \pi_t(s) & \mbox{if } s_a < s_b
+			\end{array}
+		\right.
+	\end{equation}
+
+	Specifically, if $\hat{s}_a$ is taken to be the value of one of the recently presented stimuli, e.g. $s_b^{(t-1)}$, then the short-term history effects are also qualitatively recovered.
+	{\color{red}[The formula of this thing doesn't add much, I think.]}
+
+
+\bibliography{Development,%
+			  Learning,%
+			  Control,%
+			  Dynamical_systems}
+	
+\end{document}
