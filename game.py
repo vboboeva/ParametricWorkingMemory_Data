@@ -73,6 +73,7 @@ class Game (object):
 		if weights is None:
 			self.weights = np.ones(self.N)
 		else:
+			assert len(weights.shape)==1 and len(weights)==self.N, "wrong number of items for weights"
 			self.weights = weights
 
 		self.set_pi(pi)
@@ -357,11 +358,11 @@ def plot_scatter(stimulus_set, scattervals, performvals, figurename, num_stimpai
 	axs.spines['top'].set_visible(False)
 	fig.savefig("%s"%(figurename), bbox_inches='tight')
 
-def plot_fit(xd,yd,xf,yf,figurename):
+def plot_fit(xd,yd,xf,yf,figurename,eps=None):
 	fig, ax = plt.subplots(1,1,figsize=(3,3), num=1, clear=True)
 	
-	ax.set_ylim([0.5,1.])
-	ax.set_xlim([0.15,0.85])
+	ax.set_ylim([0.4,1.])
+	# ax.set_xlim([0.15,0.85])
 
 	ax.scatter(xd[:len(xd)//2], yd[:len(xd)//2], color='blue', marker='.', label="$s_a > s_b$")
 	ax.scatter(xd[len(xd)//2:], yd[len(xd)//2:], color='red', marker='.', label="$s_a < s_b$")	
@@ -369,7 +370,8 @@ def plot_fit(xd,yd,xf,yf,figurename):
 	ax.plot(xf[:len(xf)//2], yf[:len(xf)//2], color='blue')
 	ax.plot(xf[len(xf)//2:], yf[len(xf)//2:], color='red')
 
-	ax.plot([-100,-99], [-100,-99], color='black', label="fit, $\epsilon = 0.36$")
+	if eps is not None:
+		ax.plot([xd[0],xd[0]], [-1, 0], color='black', label="fit, $\epsilon = %.3f$"%(eps))
 
 	h, l = ax.get_legend_handles_labels()
 	ax.legend(h,l,loc='lower center')
@@ -379,7 +381,7 @@ def plot_fit(xd,yd,xf,yf,figurename):
 
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
-	fig.savefig("game/%s"%(figurename), bbox_inches='tight')
+	fig.savefig("%s"%(figurename), bbox_inches='tight')
 
 
 def main():
@@ -392,7 +394,13 @@ def main():
 
 	# # run the simulation
 	p_b=float(sys.argv[1])
-	game = Game(stimulus_set)
+
+	weights = np.ones(len(stimulus_set)).reshape((2,-1))
+	# weights[:,len(weights[0])//2:] = 3
+	# weights[:,:len(weights[0])//2] = 5
+	weights = np.ravel(weights)
+
+	game = Game(stimulus_set, weights=weights)
 	game.plot_stimulus_distr(filename='game/stimulus_distr.svg')
 	num_stimpairs=game.N
 
@@ -404,7 +412,7 @@ def main():
 	performvals_analytic = 1. - p_b * game.prob_error
 
 	# PLOT the simulation and the analytical
-	plot_fit(stimulus_set[:,0],performvals,stimulus_set[:,0],performvals_analytic,figurename+".svg")
+	plot_fit(stimulus_set[:,0],performvals,stimulus_set[:,0],performvals_analytic,"game/"+figurename+".svg")
 
 	# XDATA=[network_stimulus_set, rats_stimulus_set, ha_stimulus_set, ht_stimulus_set]
 	# YDATA=[network_performvals, rats_performvals, ha_performvals, ht_performvals]
