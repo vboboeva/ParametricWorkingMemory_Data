@@ -384,6 +384,52 @@ def plot_fit(xd,yd,xf,yf,figurename,eps=None):
 	fig.savefig("%s"%(figurename), bbox_inches='tight')
 
 
+def plot_fit_and_distribution (xd,yd,xf,yf,pi,figurename,eps=None):
+	fig, ax = plt.subplots(1,1,figsize=(3,3), num=1, clear=True)
+	
+	ax.set_ylim([0.4,1.])
+	# ax.set_xlim([0.15,0.85])
+
+	ax.scatter(xd[:len(xd)//2], yd[:len(xd)//2], color='blue', marker='.', label="$s_a > s_b$")
+	ax.scatter(xd[len(xd)//2:], yd[len(xd)//2:], color='red', marker='.', label="$s_a < s_b$")	
+
+	ax.plot(xf[:len(xf)//2], yf[:len(xf)//2], color='blue')
+	ax.plot(xf[len(xf)//2:], yf[len(xf)//2:], color='red')
+
+	if eps is not None:
+		ax.plot([xd[0],xd[0]], [-1, 0], color='black', label="fit, $\epsilon = %.3f$"%(eps))
+
+	vals = np.unique(xd.ravel())
+
+	ax2 = ax.twinx()
+	ax2.set_ylim([0,0.5])
+	color='grey'
+	median = percentile_discrete(0.5, vals, pi)
+	ax2.vlines(median, 0, 1, color='black', lw=1, ls='--')
+	ax2.vlines(vals, 0, pi, color=color, lw=4)
+	
+	ax.set_xlabel("$s_a$")
+	ax.set_ylabel("performance")
+	ax2.set_ylabel("probability, $\pi$")
+
+	ax.spines['right'].set_visible(False)
+	ax.spines['top'].set_visible(False)
+	fig.savefig("%s"%(figurename), bbox_inches='tight')
+
+
+def percentile_discrete(f, vals, probs):
+	assert vals.shape == probs.shape, "invalid shapes of values and probabilities"
+	c = 0
+	v = None
+	for i, (x,p) in enumerate(zip(vals, probs)):
+		v = x
+		c += p
+		if c >= f:
+			break
+	return v
+
+
+
 def main():
 	########################################################################### BEGIN PARAMETERS ############################################################################
 
@@ -392,12 +438,13 @@ def main():
 
 	num_trials=100000 # number of trials within each session	
 
+	w_factor = 1./3.
+
 	# # run the simulation
 	p_b=float(sys.argv[1])
 
 	weights = np.ones(len(stimulus_set)).reshape((2,-1))
-	# weights[:,len(weights[0])//2:] = 3
-	# weights[:,:len(weights[0])//2] = 5
+	weights[:,len(weights[0])//2:] = w_factor
 	weights = np.ravel(weights)
 
 	game = Game(stimulus_set, weights=weights)
@@ -407,12 +454,13 @@ def main():
 	np.random.seed(1987) #int(params[index,2])) #time.time)	
 
 	figurename='sim_history'
-	performvals, scattervals = game.simulate_history(p_b, num_trials=num_trials, figurename="game/history")
-	plot_scatter(stimulus_set, scattervals, performvals, "game/performance.svg", num_stimpairs)
+	performvals, scattervals = game.simulate_history(p_b, num_trials=num_trials, figurename="game/history_%.2f"%(w_factor))
+	plot_scatter(stimulus_set, scattervals, performvals, "game/performance_%.2f.svg"%(w_factor), num_stimpairs)
 	performvals_analytic = 1. - p_b * game.prob_error
 
 	# PLOT the simulation and the analytical
-	plot_fit(stimulus_set[:,0],performvals,stimulus_set[:,0],performvals_analytic,"game/"+figurename+".svg")
+	# plot_fit(stimulus_set[:,0],performvals,stimulus_set[:,0],performvals_analytic,"game/"+figurename+".svg")
+	plot_fit_and_distribution(stimulus_set[:,0],performvals,stimulus_set[:,0],performvals_analytic,game.pi,"game/"+figurename+"_%.2f.svg"%(w_factor))
 
 	# XDATA=[network_stimulus_set, rats_stimulus_set, ha_stimulus_set, ht_stimulus_set]
 	# YDATA=[network_performvals, rats_performvals, ha_performvals, ht_performvals]
