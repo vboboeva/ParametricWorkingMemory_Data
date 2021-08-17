@@ -401,10 +401,13 @@ def plot_fit_and_distribution (xd,yd,xf,yf,pi,figurename,eps=None):
 
 	vals = np.unique(xd.ravel())
 
+	median = percentile_discrete(0.5, vals, pi)
 	ax2 = ax.twinx()
 	ax2.set_ylim([0,0.5])
-	color='grey'
-	median = percentile_discrete(0.5, vals, pi)
+	color='green'
+	ax2.yaxis.label.set_color(color)
+	# ax2.spines['right'].set_color(color)
+	ax2.tick_params(axis='y', colors=color)
 	ax2.vlines(median, 0, 1, color='black', lw=1, ls='--')
 	ax2.vlines(vals, 0, pi, color=color, lw=4)
 	
@@ -438,7 +441,7 @@ def main():
 
 	num_trials=100000 # number of trials within each session	
 
-	w_factor = 1./3.
+	w_factor = 3.
 
 	# # run the simulation
 	p_b=float(sys.argv[1])
