@@ -26,7 +26,7 @@ from data import network_stimulus_set, network_performvals, rats_stimulus_set, r
 
 
 # the axes attributes need to be set before the call to subplot
-rc('font',**{'family':'sans-serif','sans-serif':['Helvetica']}, size=14)
+rc('font',**{'family':'sans-serif','sans-serif':['Arial']}, size=10)
 rc('text', usetex=True)
 rc('axes', edgecolor='black', linewidth=0.5)
 rc('legend', frameon=False)
@@ -244,9 +244,9 @@ class Game (object):
 		return opt['x']
 
 	def plot_stimulus_distr (self, filename='stimulus_distr.svg'):
-		fig, ax = plt.subplots(figsize=(3,3))
-		ax.set_xlabel("stimulus")
-		ax.set_ylabel("probability")
+		fig, ax = plt.subplots(figsize=(2,2))
+		ax.set_xlabel("Stimulus")
+		ax.set_ylabel("Probability")
 		ax.spines['right'].set_visible(False)
 		ax.spines['top'].set_visible(False)
 		ax.set_ylim([0,0.2])
@@ -254,6 +254,8 @@ class Game (object):
 		color='grey'
 		# ax.plot(self.stimuli_vals, self.pi, 'o', ms='12', color=color)
 		ax.vlines(self.stimuli_vals, 0, self.pi, color=color, lw=4)
+		ax.set_yticks([0,0.1,0.2])
+		ax.set_yticklabels([0,0.1,0.2])
 		fig.savefig(filename,bbox_inches='tight')
 
 def history(stimulus_set, stimuli, readout, num_stimpairs):
@@ -289,25 +291,30 @@ def plot_history(stimulus_set, stimuli, readout, figurename="history"):
 	num_stimpairs=len(stimulus_set)
 	B, H =history(stimulus_set, stimuli, readout, num_stimpairs)
 
-	fig, axs = plt.subplots(1,1,figsize=(4,3))
+	fig, axs = plt.subplots(1,1,figsize=(2.2,2))
+
 	im=axs.imshow(H[:num_stimpairs,:num_stimpairs], cmap=cm.Purples)
 	#im=ax.imshow(responsevals[:8,:8], cmap=cm.Purples)
 	axs.tick_params(axis='x', direction='out')
 	axs.tick_params(axis='y', direction='out')
-	plt.colorbar(im, ax=axs, shrink=1.)
+	plt.colorbar(im, ax=axs, shrink=0.9, ticks=[0,0.5,1])
+
 	axs.set_xticks(np.arange(num_stimpairs))
-	axs.set_xticklabels(['%.1f,%.1f'%(stimulus_set[i,0], stimulus_set[i,1] ) for i in range(num_stimpairs) ] ,  rotation=90)
+	axs.set_xticklabels(['0.3,0.2','','','','','','0.2,0.3','','','','',''] ,  rotation=45)
+	#axs.set_xticklabels(['%.1f,%.1f'%(stimulus_set[i,0], stimulus_set[i,1] ) for i in range(num_stimpairs) ] ,  rotation=90)
+
 	axs.set_yticks(np.arange(num_stimpairs))
-	axs.set_yticklabels(['%.1f,%.1f'%(stimulus_set[i,0], stimulus_set[i,1] ) for i in range(num_stimpairs) ] )
-	axs.set_xlabel("current trial")
-	axs.set_ylabel("previous trial")
+	axs.set_yticklabels(['0.3,0.2','','','','','','0.2,0.3','','','','',''] )
+	axs.set_xlabel("Current trial")
+	axs.set_ylabel("Previous trial")
+
+
 	fig.savefig(figurename+"_mat.svg", bbox_inches="tight")
 
-	fig, axs = plt.subplots(1,1,figsize=(3,3), num=1, clear=True)
+
+	fig, axs = plt.subplots(1,1,figsize=(2,2))#, num=1, clear=True)
 	axs.axhline(0, color='k')
 	xdata=np.arange(int(num_stimpairs/2))
-
-
 	from scipy.optimize import curve_fit
 	# LINEAR FIT 
 	def func(xvals,a,b):	
@@ -315,86 +322,85 @@ def plot_history(stimulus_set, stimuli, readout, figurename="history"):
 
 	for i in range(num_stimpairs):
 		ydata=B[:,i]*100
-		axs.scatter(xdata, ydata, alpha=0.5, s=10)
+		axs.scatter(xdata, ydata, alpha=0.5, s=5)
 		popt, pcov = curve_fit(func, xdata, ydata)
 		axs.plot(xdata, func(xdata, popt[0], popt[1]), alpha=0.3)
 
 	bias=np.mean(B*100, axis=1)
 	popt, pcov = curve_fit(func, xdata, bias)
 
-	axs.scatter(xdata, bias, color='black')
-	axs.plot(xdata, func(xdata, popt[0], popt[1]), lw=2, color='black')
+	axs.scatter(xdata, bias, color='black', s=5)
+	axs.plot(xdata, func(xdata, popt[0], popt[1]), color='black')
 
-	#axs.legend(ncol=2)
 	axs.set_xticks(np.arange(0,6)) 
 	axs.set_xticklabels(['%.1f,%.1f'%(stimulus_set[i,0], stimulus_set[i,1] ) for i in range(6) ],  rotation=30)
 	axs.set_ylim(-20,20)
-	axs.set_xlabel("1 trial back")
-	axs.set_ylabel("$s_a > s_b$ bias ($\%$)")
+	axs.set_xlabel("Previous trial")
+	axs.set_ylabel("Bias stimulus 1 $>$ stimulus 2 ($\%$)")
 	axs.spines['right'].set_visible(False)
 	axs.spines['top'].set_visible(False)
 	fig.savefig(figurename+"_bias.svg", bbox_inches='tight')
 
 
 def plot_scatter(stimulus_set, scattervals, performvals, figurename, num_stimpairs):
-	fig, axs = plt.subplots(1,1,figsize=(4,3.5))
 
-	scat=axs.scatter(stimulus_set[:num_stimpairs,0],stimulus_set[:num_stimpairs,1], marker='s', s=100, c=scattervals[:num_stimpairs], cmap=plt.cm.coolwarm_r)
+	fig, axs = plt.subplots(1,1,figsize=(2.25,2))
+	scat=axs.scatter(stimulus_set[:num_stimpairs,0],stimulus_set[:num_stimpairs,1], marker='s', s=40, c=scattervals[:num_stimpairs], cmap=plt.cm.coolwarm, vmin=0, vmax=1)
 
 	for i in range(int(num_stimpairs/2)):
-		axs.text(stimulus_set[i,0]-0.05,stimulus_set[i,1]-0.1,'%d'%(performvals[i]*100))
+		axs.text(stimulus_set[i,0]+0.05,stimulus_set[i,1]-0.1,'%d'%(performvals[i]*100))
 
 	for i in range(int(num_stimpairs/2),num_stimpairs):
-		axs.text(stimulus_set[i,0]-0.05,stimulus_set[i,1]+0.1,'%d'%(performvals[i]*100))
+		axs.text(stimulus_set[i,0]-0.1,stimulus_set[i,1]+0.1,'%d'%(performvals[i]*100))
 
 	axs.plot(np.linspace(0,1,10),np.linspace(0,1,10), color='black')
-	axs.set_xlabel("$s_a$")
-	axs.set_ylabel("$s_b$")
-	axs.set_xticks([0,0.5,1.0])
-	axs.set_yticks([0,0.5,1.0])
-
-	plt.colorbar(scat,ax=axs)
+	axs.set_xlabel("Stimulus 1")
+	axs.set_ylabel("Stimulus 2")
+	axs.set_yticks([0,0.5,1])
+	axs.set_yticklabels([0,0.5,1])
+	plt.colorbar(scat,ax=axs,ticks=[0,0.5,1])
 	axs.spines['right'].set_visible(False)
 	axs.spines['top'].set_visible(False)
 	fig.savefig("%s"%(figurename), bbox_inches='tight')
 
 def plot_fit(xd,yd,xf,yf,figurename,eps=None):
-	fig, ax = plt.subplots(1,1,figsize=(3,3), num=1, clear=True)
+	fig, ax = plt.subplots(1,1,figsize=(2,2))#, num=1, clear=True)
 	
 	ax.set_ylim([0.4,1.])
 	# ax.set_xlim([0.15,0.85])
 
-	ax.scatter(xd[:len(xd)//2], yd[:len(xd)//2], color='blue', marker='.', label="$s_a > s_b$")
-	ax.scatter(xd[len(xd)//2:], yd[len(xd)//2:], color='red', marker='.', label="$s_a < s_b$")	
+	ax.scatter(xd[:len(xd)//2], yd[:len(xd)//2], color='crimson', marker='.', label="Stim 1 $>$ Stim 2")
+	ax.scatter(xd[len(xd)//2:], yd[len(xd)//2:], color='royalblue', marker='.', label="Stim 1 $<$ Stim 2")	
 
-	ax.plot(xf[:len(xf)//2], yf[:len(xf)//2], color='blue')
-	ax.plot(xf[len(xf)//2:], yf[len(xf)//2:], color='red')
+	ax.plot(xf[:len(xf)//2], yf[:len(xf)//2], color='crimson')
+	ax.plot(xf[len(xf)//2:], yf[len(xf)//2:], color='royalblue')
 
 	if eps is not None:
-		ax.plot([xd[0],xd[0]], [-1, 0], color='black', label="fit, $\epsilon = %.3f$"%(eps))
+		ax.plot([xd[0],xd[0]], [-1, 0], color='black', label="fit, $\epsilon = %.2f$"%(eps))
 
 	h, l = ax.get_legend_handles_labels()
 	ax.legend(h,l,loc='lower center')
 	
-	ax.set_xlabel("$s_a$")
-	ax.set_ylabel("performance")
+	ax.set_xlabel("Stimulus 1")
+	ax.set_ylabel("Performance")
 
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
-	fig.savefig("%s"%(figurename), bbox_inches='tight')
+	fig.savefig("%s.png"%(figurename), bbox_inches='tight')
+	fig.savefig("%s.svg"%(figurename), bbox_inches='tight')
 
 
 def plot_fit_and_distribution (xd,yd,xf,yf,pi,figurename,eps=None):
-	fig, ax = plt.subplots(1,1,figsize=(3,3), num=1, clear=True)
+	fig, ax = plt.subplots(1,1,figsize=(2,2))#, num=1, clear=True)
 	
 	ax.set_ylim([0.4,1.])
 	# ax.set_xlim([0.15,0.85])
 
-	ax.scatter(xd[:len(xd)//2], yd[:len(xd)//2], color='blue', marker='.', label="$s_a > s_b$")
-	ax.scatter(xd[len(xd)//2:], yd[len(xd)//2:], color='red', marker='.', label="$s_a < s_b$")	
+	ax.scatter(xd[:len(xd)//2], yd[:len(xd)//2], color='crimson', marker='.', label="$s_a > s_b$")
+	ax.scatter(xd[len(xd)//2:], yd[len(xd)//2:], color='royalblue', marker='.', label="$s_a < s_b$")	
 
-	ax.plot(xf[:len(xf)//2], yf[:len(xf)//2], color='blue')
-	ax.plot(xf[len(xf)//2:], yf[len(xf)//2:], color='red')
+	ax.plot(xf[:len(xf)//2], yf[:len(xf)//2], color='crimson')
+	ax.plot(xf[len(xf)//2:], yf[len(xf)//2:], color='royalblue')
 
 	if eps is not None:
 		ax.plot([xd[0],xd[0]], [-1, 0], color='black', label="fit, $\epsilon = %.3f$"%(eps))
@@ -402,6 +408,7 @@ def plot_fit_and_distribution (xd,yd,xf,yf,pi,figurename,eps=None):
 	vals = np.unique(xd.ravel())
 
 	median = percentile_discrete(0.5, vals, pi)
+
 	ax2 = ax.twinx()
 	ax2.set_ylim([0,0.5])
 	color='green'
@@ -410,10 +417,12 @@ def plot_fit_and_distribution (xd,yd,xf,yf,pi,figurename,eps=None):
 	ax2.tick_params(axis='y', colors=color)
 	ax2.vlines(median, 0, 1, color='black', lw=1, ls='--')
 	ax2.vlines(vals, 0, pi, color=color, lw=4)
+	ax2.set_yticks([0,0.25,0.5])
+	ax2.set_yticklabels([0,0.25,0.5])
 	
-	ax.set_xlabel("$s_a$")
-	ax.set_ylabel("performance")
-	ax2.set_ylabel("probability, $\pi$")
+	ax.set_xlabel("Stimulus 1")
+	ax.set_ylabel("Performance")
+	ax2.set_ylabel("Probability, $\pi$")
 
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
@@ -441,7 +450,7 @@ def main():
 
 	num_trials=100000 # number of trials within each session	
 
-	w_factor = 3.
+	w_factor = 1
 
 	# # run the simulation
 	p_b=float(sys.argv[1])
@@ -451,21 +460,21 @@ def main():
 	weights = np.ravel(weights)
 
 	game = Game(stimulus_set, weights=weights)
-	game.plot_stimulus_distr(filename='game/stimulus_distr.svg')
+	game.plot_stimulus_distr(filename='figs/stimulus_distr_%.2f.svg'%w_factor)
 	num_stimpairs=game.N
 
 	np.random.seed(1987) #int(params[index,2])) #time.time)	
 
 	figurename='sim_history'
-	performvals, scattervals = game.simulate_history(p_b, num_trials=num_trials, figurename="game/history_%.2f"%(w_factor))
-	plot_scatter(stimulus_set, scattervals, performvals, "game/performance_%.2f.svg"%(w_factor), num_stimpairs)
+	performvals, scattervals = game.simulate_history(p_b, num_trials=num_trials, figurename="figs/history_%.2f_%.2f"%(w_factor, p_b))
+	plot_scatter(stimulus_set, scattervals, performvals, "figs/performance_%.2f_%.2f.svg"%(w_factor,p_b), num_stimpairs)
 	performvals_analytic = 1. - p_b * game.prob_error
 
 	# PLOT the simulation and the analytical
-	# plot_fit(stimulus_set[:,0],performvals,stimulus_set[:,0],performvals_analytic,"game/"+figurename+".svg")
-	plot_fit_and_distribution(stimulus_set[:,0],performvals,stimulus_set[:,0],performvals_analytic,game.pi,"game/"+figurename+"_%.2f.svg"%(w_factor))
+	# plot_fit(stimulus_set[:,0],performvals,stimulus_set[:,0],performvals_analytic,"figs/"+figurename+".svg")
+	plot_fit_and_distribution(stimulus_set[:,0],performvals,stimulus_set[:,0],performvals_analytic,game.pi,"figs/"+figurename+"_%.2f_%.2f.svg"%(w_factor, p_b))
 
-	# XDATA=[network_stimulus_set, rats_stimulus_set, ha_stimulus_set, ht_stimulus_set]
+	# XDATA=[network_stimulus_set]#, rats_stimulus_set, ha_stimulus_set, ht_stimulus_set]
 	# YDATA=[network_performvals, rats_performvals, ha_performvals, ht_performvals]
 	# labels=['net', 'rats', 'ha', 'ht']
 	# epsvals=[0.36,0.4,0.65,0.7]
@@ -474,22 +483,22 @@ def main():
 	# 	print("------------ {} ------------".format(labels[i]))
 	# 	performvals=YDATA[i]
 	# 	try:
-	# 		# game = Game(stimulus_set)
-	# 		# game.check_distributions()
-	# 		# fitted_param=game.fit_eps(performvals) #epsvals[i]
-	# 		# print(fitted_param)
-	# 		# performvals_analytic=game.performances(fitted_param)
+	# 		game = Game(stimulus_set)
+	# 		game.check_distributions()
+	# 		fitted_param=game.fit_eps(performvals) #epsvals[i]
+	# 		print(fitted_param)
+	# 		performvals_analytic=game.performances(fitted_param)
 
 
-	# 		mean, std = np.mean(stimulus_set), np.std(stimulus_set)
-	# 		game = Game(stimulus_set, pi_extra=stats.norm(mean+2.*std, .1*std))
-	# 		performvals_analytic, _ = game.simulate_extra(epsvals[i], 0.9, num_trials=num_trials)
+	# 		# mean, std = np.mean(stimulus_set), np.std(stimulus_set)
+	# 		# game = Game(stimulus_set, pi_extra=stats.norm(mean+2.*std, .1*std))
+	# 		# performvals_analytic, _ = game.simulate_extra(epsvals[i], 0.9, num_trials=num_trials)
 
-	# 		plot_fit(stimulus_set[:,0],performvals,stimulus_set[:,0],performvals_analytic,'%s'%labels[i])
+	# 		plot_fit(stimulus_set[:,0],performvals,stimulus_set[:,0],performvals_analytic,'%s'%labels[i],fitted_param)
 	# 	except:
 	# 		raise ValueError("Something wrong with \"{}\"".format(labels[i]))
 
-	# return
+	return
 
 
 
