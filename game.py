@@ -78,6 +78,8 @@ class Game (object):
 
 		self.set_pi(pi)
 		self.pi_extra = pi_extra
+		self.w_factor = 1
+		self.delta = 0
 
 	def set_pi(self, pi):
 		
@@ -99,10 +101,13 @@ class Game (object):
 			print("array")
 			self.pi = pi / np.sum(pi)
 
-		self.cdf_lsr = np.array([np.sum(self.pi[:i]) for i in range(len(self.pi))])
-		self.cdf_gtr = np.array([np.sum(self.pi[i+1:]) for i in range(len(self.pi))])
+			self.set_dicts(self.pi)
 
-		self.pi_dict = dict([(s, p) for s,p in zip(self.stimuli_vals, self.pi)])
+	def set_dicts (self, pi):
+		self.cdf_lsr = np.array([np.sum(pi[:i]) for i in range(len(pi))])
+		self.cdf_gtr = np.array([np.sum(pi[i+1:]) for i in range(len(pi))])
+
+		self.pi_dict = dict([(s, p) for s,p in zip(self.stimuli_vals, pi)])
 		self.cdf_lsr_dict = dict([(s, p) for s,p in zip(self.stimuli_vals, self.cdf_lsr)])
 		self.cdf_gtr_dict = dict([(s, p) for s,p in zip(self.stimuli_vals, self.cdf_gtr)])
 
@@ -126,27 +131,37 @@ class Game (object):
 		sampled from the distribution pi (optional parameter), one gets 
 		a wrong classification. 
 		'''
-		if not hasattr(self, '_prob_error'):
-			_prob_error = np.zeros(self.N) # to return: one probability for each stimulus pair
-			pi = self.pi
+		# if not hasattr(self, '_prob_error'):
+		_prob_error = np.zeros(self.N) # to return: one probability for each stimulus pair
+		pi = self.pi.copy()
 
-			pi_dict = self.pi_dict
-			cdf_dict = self.cdf_lsr_dict
-			_cdf_dict = self.cdf_gtr_dict
+		# use w_factor as exponential (geometric) weight to reweight pi
+		if self.w_factor != 1:
+			reweighting = np.ones_like(self.pi)
+			for i in range(1,len(reweighting)):
+				reweighting[i] = reweighting[i-1]*self.w_factor
+			pi = pi*reweighting
+			pi /= np.sum(pi)
 
-			for i, (sa,sb) in enumerate(self.stimulus_set):
-				# depending on whether sa > sb or viceversa,
-				# calculate probabilities of error
-				if sa > sb:
-					p = 0.5 * pi_dict[sb] + cdf_dict[sb]
-				elif sa < sb:
-					p = 0.5 * pi_dict[sb] + _cdf_dict[sb]
-				else:
-					raise ValueError("Unexpected sa = sb stimulus pair")
+		self.set_dicts(pi)
 
-				_prob_error[i] = p
+		pi_dict = self.pi_dict
+		cdf_dict = self.cdf_lsr_dict
+		_cdf_dict = self.cdf_gtr_dict
 
-			self._prob_error = _prob_error
+		for i, (sa, sb) in enumerate(self.stimulus_set):
+			# depending on whether sa > sb or viceversa,
+			# calculate probabilities of error
+			if sa > sb:
+				p = 0.5 * pi_dict[sb] + cdf_dict[sb]
+			elif sa < sb:
+				p = 0.5 * pi_dict[sb] + _cdf_dict[sb]
+			else:
+				raise ValueError("Unexpected sa = sb stimulus pair")
+
+			_prob_error[i] = p
+
+		self._prob_error = _prob_error
 
 		return self._prob_error
 
@@ -228,19 +243,26 @@ class Game (object):
 		return scatter(self.stimulus_set,stimuli,readout,labels)
 
 
-	def performances(self, eps):
-		return 1. - eps * self.prob_error
+	def performances(self, eps, delta, w_factor):
+		self.w_factor = w_factor
+		# self.eps = eps
+		# self.delta = delta
+		return 1. - eps * self.prob_error - delta
 
-	def fit_eps (self, performvals):
+	def fit (self, performvals):
 
-		def distance (eps):
-			delta = self.performances(eps) - performvals 
+		def distance (pars):
+			eps, delta, w_factor = pars
+		# def distance (eps):
+			delta = self.performances(eps, delta, w_factor) - performvals 
 			delta /= performvals 
 			# print(np.sum(delta*delta))
 			return np.sum(delta*delta)
 
-		opt = minimize(distance, np.array([0.5]))
-		print("optimal error probability = %.3f"%(opt['x'],))
+		opt = minimize(distance, np.array([0.5,0,1.]))
+		print("optimal error probability  = %.3f"%(opt['x'][0],))
+		print("optimal lapse parameter    = %.3f"%(opt['x'][1],))
+		print("optimal exponential factor = %.3f"%(opt['x'][2],))
 		return opt['x']
 
 	def plot_stimulus_distr (self, filename='stimulus_distr.svg'):
@@ -313,7 +335,7 @@ def plot_history(stimulus_set, stimuli, readout, figurename="history"):
 
 
 	fig, axs = plt.subplots(1,1,figsize=(2,2))#, num=1, clear=True)
-	axs.axhline(0, color='k')
+	#axs.axhline(0, color='k')
 	xdata=np.arange(int(num_stimpairs/2))
 	from scipy.optimize import curve_fit
 	# LINEAR FIT 
@@ -363,47 +385,47 @@ def plot_scatter(stimulus_set, scattervals, performvals, figurename, num_stimpai
 	axs.spines['top'].set_visible(False)
 	fig.savefig("%s"%(figurename), bbox_inches='tight')
 
-def plot_fit(xd,yd,xf,yf,figurename,eps=None):
+def plot_fit(xd,yd,xf,yf,figurename,eps=None, delta=None, gamma=None):
 	fig, ax = plt.subplots(1,1,figsize=(2,2))#, num=1, clear=True)
 	
 	ax.set_ylim([0.4,1.])
 	# ax.set_xlim([0.15,0.85])
 
-	ax.scatter(xd[:len(xd)//2], yd[:len(xd)//2], color='crimson', marker='.', label="Stim 1 $>$ Stim 2")
-	ax.scatter(xd[len(xd)//2:], yd[len(xd)//2:], color='royalblue', marker='.', label="Stim 1 $<$ Stim 2")	
+	ax.scatter(xd[:len(xd)//2], yd[:len(xd)//2], color='royalblue', marker='.')#, label="Stim 1 $>$ Stim 2")
+	ax.scatter(xd[len(xd)//2:], yd[len(xd)//2:], color='crimson', marker='.')#, label="Stim 1 $<$ Stim 2")	
 
-	ax.plot(xf[:len(xf)//2], yf[:len(xf)//2], color='crimson')
-	ax.plot(xf[len(xf)//2:], yf[len(xf)//2:], color='royalblue')
+	ax.plot(xf[:len(xf)//2], yf[:len(xf)//2], color='royalblue')
+	ax.plot(xf[len(xf)//2:], yf[len(xf)//2:], color='crimson')
 
 	if eps is not None:
-		ax.plot([xd[0],xd[0]], [-1, 0], color='black', label="fit, $\epsilon = %.2f$"%(eps))
+		ax.plot([xd[0],xd[0]], [-1, 0], color='black', label="$\epsilon = %.2f$ \n $\delta=%.2f$ \n $\gamma=%.2f$"%(eps, delta, gamma))
 
 	h, l = ax.get_legend_handles_labels()
-	ax.legend(h,l,loc='lower center')
+	ax.legend(h, l, loc='best')
 	
 	ax.set_xlabel("Stimulus 1")
 	ax.set_ylabel("Performance")
 
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
-	fig.savefig("%s.png"%(figurename), bbox_inches='tight')
-	fig.savefig("%s.svg"%(figurename), bbox_inches='tight')
+	fig.savefig("figs1/%s.png"%(figurename), bbox_inches='tight')
+	fig.savefig("figs1/%s.svg"%(figurename), bbox_inches='tight')
 
 
-def plot_fit_and_distribution (xd,yd,xf,yf,pi,figurename,eps=None):
+def plot_fit_and_distribution (xd,yd,xf,yf,pi,figurename, eps=None):
 	fig, ax = plt.subplots(1,1,figsize=(2,2))#, num=1, clear=True)
 	
 	ax.set_ylim([0.4,1.])
 	# ax.set_xlim([0.15,0.85])
 
-	ax.scatter(xd[:len(xd)//2], yd[:len(xd)//2], color='crimson', marker='.', label="$s_a > s_b$")
-	ax.scatter(xd[len(xd)//2:], yd[len(xd)//2:], color='royalblue', marker='.', label="$s_a < s_b$")	
+	ax.scatter(xd[:len(xd)//2], yd[:len(xd)//2], color='royalblue', marker='.', label="$s_a > s_b$")
+	ax.scatter(xd[len(xd)//2:], yd[len(xd)//2:], color='crimson', marker='.', label="$s_a < s_b$")	
 
-	ax.plot(xf[:len(xf)//2], yf[:len(xf)//2], color='crimson')
-	ax.plot(xf[len(xf)//2:], yf[len(xf)//2:], color='royalblue')
+	ax.plot(xf[:len(xf)//2], yf[:len(xf)//2], color='royalblue')
+	ax.plot(xf[len(xf)//2:], yf[len(xf)//2:], color='crimson')
 
 	if eps is not None:
-		ax.plot([xd[0],xd[0]], [-1, 0], color='black', label="fit, $\epsilon = %.3f$"%(eps))
+		ax.plot([xd[0],xd[0]], [-1, 0], color='black', label="fit, $\epsilon=%.2f$"%eps)
 
 	vals = np.unique(xd.ravel())
 
@@ -453,50 +475,54 @@ def main():
 	w_factor = 1
 
 	# # run the simulation
-	p_b=float(sys.argv[1])
+	# p_b=float(sys.argv[1])
 
 	weights = np.ones(len(stimulus_set)).reshape((2,-1))
-	weights[:,len(weights[0])//2:] = w_factor
+	# weights[:,len(weights[0])//2:] = w_factor
+	weights[:,len(weights[0])//2:] *= w_factor
+	
 	weights = np.ravel(weights)
 
 	game = Game(stimulus_set, weights=weights)
-	game.plot_stimulus_distr(filename='figs/stimulus_distr_%.2f.svg'%w_factor)
+	game.plot_stimulus_distr(filename='figs1/stimulus_distr_%.2f.svg'%w_factor)
 	num_stimpairs=game.N
 
 	np.random.seed(1987) #int(params[index,2])) #time.time)	
 
-	figurename='sim_history'
-	performvals, scattervals = game.simulate_history(p_b, num_trials=num_trials, figurename="figs/history_%.2f_%.2f"%(w_factor, p_b))
-	plot_scatter(stimulus_set, scattervals, performvals, "figs/performance_%.2f_%.2f.svg"%(w_factor,p_b), num_stimpairs)
-	performvals_analytic = 1. - p_b * game.prob_error
+	###############################################
+	# figurename='sim_history'
+	# performvals, scattervals = game.simulate_history(p_b, num_trials=num_trials, figurename="figs1/history_%.2f_%.2f"%(w_factor, p_b))
+	# plot_scatter(stimulus_set, scattervals, performvals, "figs1/performance_%.2f_%.2f.svg"%(w_factor,p_b), num_stimpairs)
+	# performvals_analytic = 1. - p_b * game.prob_error
 
 	# PLOT the simulation and the analytical
-	# plot_fit(stimulus_set[:,0],performvals,stimulus_set[:,0],performvals_analytic,"figs/"+figurename+".svg")
-	plot_fit_and_distribution(stimulus_set[:,0],performvals,stimulus_set[:,0],performvals_analytic,game.pi,"figs/"+figurename+"_%.2f_%.2f.svg"%(w_factor, p_b))
+	# plot_fit(stimulus_set[:,0],performvals,stimulus_set[:,0],performvals_analytic,"figs1/"+figurename+".svg")
+	# plot_fit_and_distribution(stimulus_set[:,0],performvals,stimulus_set[:,0],performvals_analytic,game.pi,"figs1/"+figurename+"_%.2f_%.2f.svg"%(w_factor, p_b))
+	###############################################
 
-	# XDATA=[network_stimulus_set]#, rats_stimulus_set, ha_stimulus_set, ht_stimulus_set]
-	# YDATA=[network_performvals, rats_performvals, ha_performvals, ht_performvals]
-	# labels=['net', 'rats', 'ha', 'ht']
-	# epsvals=[0.36,0.4,0.65,0.7]
-	# # FIT the data
-	# for i, stimulus_set in enumerate(XDATA):
-	# 	print("------------ {} ------------".format(labels[i]))
-	# 	performvals=YDATA[i]
-	# 	try:
-	# 		game = Game(stimulus_set)
-	# 		game.check_distributions()
-	# 		fitted_param=game.fit_eps(performvals) #epsvals[i]
-	# 		print(fitted_param)
-	# 		performvals_analytic=game.performances(fitted_param)
+	XDATA=[rats_stimulus_set, ha_stimulus_set, ht_stimulus_set] # network_stimulus_set, 
+	YDATA=[rats_performvals, ha_performvals, ht_performvals] # network_performvals, 
+	labels=['rats', 'ha', 'ht'] # 'net', 
+	epsvals=[0.4,0.65,0.7] # 0.36,   # values of eps for the game simulations
 
+	# FIT the data
+	for i, stimulus_set in enumerate(XDATA):
+		print("------------ {} ------------".format(labels[i]))
+		performvals=YDATA[i]
+		try:
+			game = Game(stimulus_set)
+			# game.check_distributions()
+			fitted_param=game.fit(performvals)
+			print(fitted_param)
+			performvals_analytic=game.performances(*fitted_param)
 
-	# 		# mean, std = np.mean(stimulus_set), np.std(stimulus_set)
-	# 		# game = Game(stimulus_set, pi_extra=stats.norm(mean+2.*std, .1*std))
-	# 		# performvals_analytic, _ = game.simulate_extra(epsvals[i], 0.9, num_trials=num_trials)
+			# mean, std = np.mean(stimulus_set), np.std(stimulus_set)
+			# game = Game(stimulus_set, pi_extra=stats.norm(mean+2.*std, .1*std))
+			# performvals_analytic, _ = game.simulate_extra(epsvals[i], 0.9, num_trials=num_trials)
 
-	# 		plot_fit(stimulus_set[:,0],performvals,stimulus_set[:,0],performvals_analytic,'%s'%labels[i],fitted_param)
-	# 	except:
-	# 		raise ValueError("Something wrong with \"{}\"".format(labels[i]))
+			plot_fit(stimulus_set[:,0],performvals,stimulus_set[:,0],performvals_analytic,'%s'%labels[i],fitted_param[0],fitted_param[1],fitted_param[2])
+		except:
+			raise ValueError("Something wrong with \"{}\"".format(labels[i]))
 
 	return
 
