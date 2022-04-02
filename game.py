@@ -22,7 +22,7 @@ from pylab import rcParams
 from scipy.optimize import minimize
 from scipy import stats
 
-from data import network_stimulus_set, network_performvals, rats_stimulus_set, rats_performvals, ha_stimulus_set, ha_performvals, ht_stimulus_set, ht_performvals
+#from data import network_stimulus_set, network_performvals, rats_stimulus_set, rats_performvals, ha_stimulus_set, ha_performvals, ht_stimulus_set, ht_performvals
 
 
 # the axes attributes need to be set before the call to subplot
@@ -42,9 +42,46 @@ def get_label (sa, sb):
 	else:
 		return np.random.choice(2) 
 
-
 def fit_cumul(xvals,a,b):	
-	return a*xvals+b		
+	return a*xvals+b	
+
+def percentile_discrete(f, vals, probs):
+	assert vals.shape == probs.shape, "invalid shapes of values and probabilities"
+	c = 0
+	v = None
+	for i, (x,p) in enumerate(zip(vals, probs)):
+		v = x
+		c += p
+		if c >= f:
+			break
+	return v	
+
+def history(stimulus_set, stimuli, readout, num_stimpairs):
+	trialtypevals=np.zeros((len(stimulus_set), len(stimulus_set)))
+	responsevals=np.zeros((len(stimulus_set), len(stimulus_set)))
+
+	# SORT performance by previous pair of stimuli
+	for idx in range(len(stimuli)):
+		for m in range(len(stimulus_set)):
+			if ( stimuli[idx]==stimulus_set[m] ).all():
+				for n in range(len(stimulus_set)):
+					if ( stimuli[idx-1]==stimulus_set[n] ).all():
+						trialtypevals[n,m] += 1
+						responsevals[n,m] += readout[idx]
+
+	A1=responsevals[0:int(num_stimpairs/2),:num_stimpairs]/trialtypevals[0:int(num_stimpairs/2),:num_stimpairs]
+	B1=np.zeros((int(num_stimpairs/2),num_stimpairs))
+	for i in range(num_stimpairs):
+		B1[:,i] = (A1[:,i] - np.mean(A1[:,i]))
+
+	A2=responsevals[int(num_stimpairs/2):num_stimpairs,:num_stimpairs]/trialtypevals[int(num_stimpairs/2):num_stimpairs,:num_stimpairs]
+	B2=np.zeros((int(num_stimpairs/2),num_stimpairs))
+	for i in range(num_stimpairs):
+		B2[:,i] = (A2[:,i] - np.mean(A2[:,i]))
+
+	B=np.hstack((B1,B2))
+	H=np.divide(responsevals, trialtypevals, out=np.zeros_like(responsevals), where=trialtypevals!=0)
+	return B, H
 
 def scatter(stimulus_set,stimuli,readout,labels):
 	# SORT performance by pair of stimuli (for performance by stimulus type)
@@ -78,7 +115,7 @@ class Game (object):
 
 		self.set_pi(pi)
 		self.pi_extra = pi_extra
-		self.w_factor = 1
+		self.gamma = 1
 		self.delta = 0
 
 	def set_pi(self, pi):
@@ -135,11 +172,11 @@ class Game (object):
 		_prob_error = np.zeros(self.N) # to return: one probability for each stimulus pair
 		pi = self.pi.copy()
 
-		# use w_factor as exponential (geometric) weight to reweight pi
-		if self.w_factor != 1:
+		# use gamma as exponential (geometric) weight to reweight pi
+		if self.gamma != 1:
 			reweighting = np.ones_like(self.pi)
 			for i in range(1,len(reweighting)):
-				reweighting[i] = reweighting[i-1]*self.w_factor
+				reweighting[i] = reweighting[i-1]*self.gamma
 			pi = pi*reweighting
 			pi /= np.sum(pi)
 
@@ -184,7 +221,7 @@ class Game (object):
 			
 			readout[trial] = get_label(sa, sb)
 
-		return scatter(self.stimulus_set,stimuli,readout,labels)
+		return stimuli, readout, labels
 
 	def simulate_history (self, eps, num_trials=1000, figurename="history"):
 		probas = self.weights/np.sum(self.weights)
@@ -208,10 +245,7 @@ class Game (object):
 		np.save("history_stimuli.npy", stimuli)
 		np.save("history_readout.npy", readout)
 
-		plot_history(self.stimulus_set, stimuli, readout,figurename=figurename)
-
-		return scatter(self.stimulus_set,stimuli,readout,labels)
-		
+		return stimuli, readout, labels
 
 	def simulate_extra (self, eps, eps1, num_trials=1000):
 
@@ -243,8 +277,8 @@ class Game (object):
 		return scatter(self.stimulus_set,stimuli,readout,labels)
 
 
-	def performances(self, eps, delta, w_factor):
-		self.w_factor = w_factor
+	def performances(self, eps, delta, gamma):
+		self.gamma = gamma
 		# self.eps = eps
 		# self.delta = delta
 		return 1. - eps * self.prob_error - delta
@@ -252,17 +286,15 @@ class Game (object):
 	def fit (self, performvals):
 
 		def distance (pars):
-			eps, delta, w_factor = pars
-		# def distance (eps):
-			delta = self.performances(eps, delta, w_factor) - performvals 
-			delta /= performvals 
-			# print(np.sum(delta*delta))
-			return np.sum(delta*delta)
+			eps, delta, gamma = pars
+			relative_error = self.performances(eps, delta, gamma) - performvals 
+			relative_error /= performvals 
+			return np.sum(relative_error*relative_error)
 
 		opt = minimize(distance, np.array([0.5,0,1.]))
-		print("optimal error probability  = %.3f"%(opt['x'][0],))
-		print("optimal lapse parameter    = %.3f"%(opt['x'][1],))
-		print("optimal exponential factor = %.3f"%(opt['x'][2],))
+		print("optimal error probability eps = %.3f"%(opt['x'][0],))
+		print("optimal lapse parameter delta = %.3f"%(opt['x'][1],))
+		print("optimal exponential factor gamma = %.3f"%(opt['x'][2],))
 		return opt['x']
 
 	def plot_stimulus_distr (self, filename='stimulus_distr.svg'):
@@ -280,253 +312,7 @@ class Game (object):
 		ax.set_yticklabels([0,0.1,0.2])
 		fig.savefig(filename,bbox_inches='tight')
 
-def history(stimulus_set, stimuli, readout, num_stimpairs):
-	trialtypevals=np.zeros((len(stimulus_set), len(stimulus_set)))
-	responsevals=np.zeros((len(stimulus_set), len(stimulus_set)))
-
-	# SORT performance by previous pair of stimuli
-	for idx in range(len(stimuli)):
-		for m in range(len(stimulus_set)):
-			if ( stimuli[idx]==stimulus_set[m] ).all():
-				for n in range(len(stimulus_set)):
-					if ( stimuli[idx-1]==stimulus_set[n] ).all():
-						trialtypevals[n,m] += 1
-						responsevals[n,m] += readout[idx]
-
-	A1=responsevals[0:int(num_stimpairs/2),:num_stimpairs]/trialtypevals[0:int(num_stimpairs/2),:num_stimpairs]
-	B1=np.zeros((int(num_stimpairs/2),num_stimpairs))
-	for i in range(num_stimpairs):
-		B1[:,i] = (A1[:,i] - np.mean(A1[:,i]))
-
-	A2=responsevals[int(num_stimpairs/2):num_stimpairs,:num_stimpairs]/trialtypevals[int(num_stimpairs/2):num_stimpairs,:num_stimpairs]
-	B2=np.zeros((int(num_stimpairs/2),num_stimpairs))
-	for i in range(num_stimpairs):
-		B2[:,i] = (A2[:,i] - np.mean(A2[:,i]))
-
-	B=np.hstack((B1,B2))
-	H=np.divide(responsevals, trialtypevals, out=np.zeros_like(responsevals), where=trialtypevals!=0)
-	return B, H
-
-
-def plot_history(stimulus_set, stimuli, readout, figurename="history"):
-	
-	num_stimpairs=len(stimulus_set)
-	B, H =history(stimulus_set, stimuli, readout, num_stimpairs)
-
-	fig, axs = plt.subplots(1,1,figsize=(2.2,2))
-
-	im=axs.imshow(H[:num_stimpairs,:num_stimpairs], cmap=cm.Purples)
-	#im=ax.imshow(responsevals[:8,:8], cmap=cm.Purples)
-	axs.tick_params(axis='x', direction='out')
-	axs.tick_params(axis='y', direction='out')
-	plt.colorbar(im, ax=axs, shrink=0.9, ticks=[0,0.5,1])
-
-	axs.set_xticks(np.arange(num_stimpairs))
-	axs.set_xticklabels(['0.3,0.2','','','','','','0.2,0.3','','','','',''] ,  rotation=45)
-	#axs.set_xticklabels(['%.1f,%.1f'%(stimulus_set[i,0], stimulus_set[i,1] ) for i in range(num_stimpairs) ] ,  rotation=90)
-
-	axs.set_yticks(np.arange(num_stimpairs))
-	axs.set_yticklabels(['0.3,0.2','','','','','','0.2,0.3','','','','',''] )
-	axs.set_xlabel("Current trial")
-	axs.set_ylabel("Previous trial")
-
-
-	fig.savefig(figurename+"_mat.svg", bbox_inches="tight")
-
-
-	fig, axs = plt.subplots(1,1,figsize=(2,2))#, num=1, clear=True)
-	#axs.axhline(0, color='k')
-	xdata=np.arange(int(num_stimpairs/2))
-	from scipy.optimize import curve_fit
-	# LINEAR FIT 
-	def func(xvals,a,b):	
-		return a*xvals+b
-
-	for i in range(num_stimpairs):
-		ydata=B[:,i]*100
-		axs.scatter(xdata, ydata, alpha=0.5, s=5)
-		popt, pcov = curve_fit(func, xdata, ydata)
-		axs.plot(xdata, func(xdata, popt[0], popt[1]), alpha=0.3)
-
-	bias=np.mean(B*100, axis=1)
-	popt, pcov = curve_fit(func, xdata, bias)
-
-	axs.scatter(xdata, bias, color='black', s=5)
-	axs.plot(xdata, func(xdata, popt[0], popt[1]), color='black')
-
-	axs.set_xticks(np.arange(0,6)) 
-	axs.set_xticklabels(['%.1f,%.1f'%(stimulus_set[i,0], stimulus_set[i,1] ) for i in range(6) ],  rotation=30)
-	axs.set_ylim(-20,20)
-	axs.set_xlabel("Previous trial")
-	axs.set_ylabel("Bias stimulus 1 $>$ stimulus 2 ($\%$)")
-	axs.spines['right'].set_visible(False)
-	axs.spines['top'].set_visible(False)
-	fig.savefig(figurename+"_bias.svg", bbox_inches='tight')
-
-
-def plot_scatter(stimulus_set, scattervals, performvals, figurename, num_stimpairs):
-
-	fig, axs = plt.subplots(1,1,figsize=(2.25,2))
-	scat=axs.scatter(stimulus_set[:num_stimpairs,0],stimulus_set[:num_stimpairs,1], marker='s', s=40, c=scattervals[:num_stimpairs], cmap=plt.cm.coolwarm, vmin=0, vmax=1)
-
-	for i in range(int(num_stimpairs/2)):
-		axs.text(stimulus_set[i,0]+0.05,stimulus_set[i,1]-0.1,'%d'%(performvals[i]*100))
-
-	for i in range(int(num_stimpairs/2),num_stimpairs):
-		axs.text(stimulus_set[i,0]-0.1,stimulus_set[i,1]+0.1,'%d'%(performvals[i]*100))
-
-	axs.plot(np.linspace(0,1,10),np.linspace(0,1,10), color='black')
-	axs.set_xlabel("Stimulus 1")
-	axs.set_ylabel("Stimulus 2")
-	axs.set_yticks([0,0.5,1])
-	axs.set_yticklabels([0,0.5,1])
-	plt.colorbar(scat,ax=axs,ticks=[0,0.5,1])
-	axs.spines['right'].set_visible(False)
-	axs.spines['top'].set_visible(False)
-	fig.savefig("%s"%(figurename), bbox_inches='tight')
-
-def plot_fit(xd,yd,xf,yf,figurename,eps=None, delta=None, gamma=None):
-	fig, ax = plt.subplots(1,1,figsize=(2,2))#, num=1, clear=True)
-	
-	ax.set_ylim([0.4,1.])
-	# ax.set_xlim([0.15,0.85])
-
-	ax.scatter(xd[:len(xd)//2], yd[:len(xd)//2], color='royalblue', marker='.')#, label="Stim 1 $>$ Stim 2")
-	ax.scatter(xd[len(xd)//2:], yd[len(xd)//2:], color='crimson', marker='.')#, label="Stim 1 $<$ Stim 2")	
-
-	ax.plot(xf[:len(xf)//2], yf[:len(xf)//2], color='royalblue')
-	ax.plot(xf[len(xf)//2:], yf[len(xf)//2:], color='crimson')
-
-	if eps is not None:
-		ax.plot([xd[0],xd[0]], [-1, 0], color='black', label="$\epsilon = %.2f$ \n $\delta=%.2f$ \n $\gamma=%.2f$"%(eps, delta, gamma))
-
-	h, l = ax.get_legend_handles_labels()
-	ax.legend(h, l, loc='best')
-	
-	ax.set_xlabel("Stimulus 1")
-	ax.set_ylabel("Performance")
-
-	ax.spines['right'].set_visible(False)
-	ax.spines['top'].set_visible(False)
-	fig.savefig("figs1/%s.png"%(figurename), bbox_inches='tight')
-	fig.savefig("figs1/%s.svg"%(figurename), bbox_inches='tight')
-
-
-def plot_fit_and_distribution (xd,yd,xf,yf,pi,figurename, eps=None):
-	fig, ax = plt.subplots(1,1,figsize=(2,2))#, num=1, clear=True)
-	
-	ax.set_ylim([0.4,1.])
-	# ax.set_xlim([0.15,0.85])
-
-	ax.scatter(xd[:len(xd)//2], yd[:len(xd)//2], color='royalblue', marker='.', label="$s_a > s_b$")
-	ax.scatter(xd[len(xd)//2:], yd[len(xd)//2:], color='crimson', marker='.', label="$s_a < s_b$")	
-
-	ax.plot(xf[:len(xf)//2], yf[:len(xf)//2], color='royalblue')
-	ax.plot(xf[len(xf)//2:], yf[len(xf)//2:], color='crimson')
-
-	if eps is not None:
-		ax.plot([xd[0],xd[0]], [-1, 0], color='black', label="fit, $\epsilon=%.2f$"%eps)
-
-	vals = np.unique(xd.ravel())
-
-	median = percentile_discrete(0.5, vals, pi)
-
-	ax2 = ax.twinx()
-	ax2.set_ylim([0,0.5])
-	color='green'
-	ax2.yaxis.label.set_color(color)
-	# ax2.spines['right'].set_color(color)
-	ax2.tick_params(axis='y', colors=color)
-	ax2.vlines(median, 0, 1, color='black', lw=1, ls='--')
-	ax2.vlines(vals, 0, pi, color=color, lw=4)
-	ax2.set_yticks([0,0.25,0.5])
-	ax2.set_yticklabels([0,0.25,0.5])
-	
-	ax.set_xlabel("Stimulus 1")
-	ax.set_ylabel("Performance")
-	ax2.set_ylabel("Probability, $\pi$")
-
-	ax.spines['right'].set_visible(False)
-	ax.spines['top'].set_visible(False)
-	fig.savefig("%s"%(figurename), bbox_inches='tight')
-
-
-def percentile_discrete(f, vals, probs):
-	assert vals.shape == probs.shape, "invalid shapes of values and probabilities"
-	c = 0
-	v = None
-	for i, (x,p) in enumerate(zip(vals, probs)):
-		v = x
-		c += p
-		if c >= f:
-			break
-	return v
 
 
 
-def main():
-	########################################################################### BEGIN PARAMETERS ############################################################################
 
-	SimulationName='game'
-	stimulus_set = network_stimulus_set
-
-	num_trials=100000 # number of trials within each session	
-
-	w_factor = 1
-
-	# # run the simulation
-	# p_b=float(sys.argv[1])
-
-	weights = np.ones(len(stimulus_set)).reshape((2,-1))
-	# weights[:,len(weights[0])//2:] = w_factor
-	weights[:,len(weights[0])//2:] *= w_factor
-	
-	weights = np.ravel(weights)
-
-	game = Game(stimulus_set, weights=weights)
-	game.plot_stimulus_distr(filename='figs1/stimulus_distr_%.2f.svg'%w_factor)
-	num_stimpairs=game.N
-
-	np.random.seed(1987) #int(params[index,2])) #time.time)	
-
-	###############################################
-	# figurename='sim_history'
-	# performvals, scattervals = game.simulate_history(p_b, num_trials=num_trials, figurename="figs1/history_%.2f_%.2f"%(w_factor, p_b))
-	# plot_scatter(stimulus_set, scattervals, performvals, "figs1/performance_%.2f_%.2f.svg"%(w_factor,p_b), num_stimpairs)
-	# performvals_analytic = 1. - p_b * game.prob_error
-
-	# PLOT the simulation and the analytical
-	# plot_fit(stimulus_set[:,0],performvals,stimulus_set[:,0],performvals_analytic,"figs1/"+figurename+".svg")
-	# plot_fit_and_distribution(stimulus_set[:,0],performvals,stimulus_set[:,0],performvals_analytic,game.pi,"figs1/"+figurename+"_%.2f_%.2f.svg"%(w_factor, p_b))
-	###############################################
-
-	XDATA=[rats_stimulus_set, ha_stimulus_set, ht_stimulus_set] # network_stimulus_set, 
-	YDATA=[rats_performvals, ha_performvals, ht_performvals] # network_performvals, 
-	labels=['rats', 'ha', 'ht'] # 'net', 
-	epsvals=[0.4,0.65,0.7] # 0.36,   # values of eps for the game simulations
-
-	# FIT the data
-	for i, stimulus_set in enumerate(XDATA):
-		print("------------ {} ------------".format(labels[i]))
-		performvals=YDATA[i]
-		try:
-			game = Game(stimulus_set)
-			# game.check_distributions()
-			fitted_param=game.fit(performvals)
-			print(fitted_param)
-			performvals_analytic=game.performances(*fitted_param)
-
-			# mean, std = np.mean(stimulus_set), np.std(stimulus_set)
-			# game = Game(stimulus_set, pi_extra=stats.norm(mean+2.*std, .1*std))
-			# performvals_analytic, _ = game.simulate_extra(epsvals[i], 0.9, num_trials=num_trials)
-
-			plot_fit(stimulus_set[:,0],performvals,stimulus_set[:,0],performvals_analytic,'%s'%labels[i],fitted_param[0],fitted_param[1],fitted_param[2])
-		except:
-			raise ValueError("Something wrong with \"{}\"".format(labels[i]))
-
-	return
-
-
-
-if __name__ == "__main__":
-	main()
