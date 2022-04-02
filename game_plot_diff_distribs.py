@@ -85,15 +85,31 @@ if __name__ == "__main__":
 	
 	# number of trials within each session
 	num_trials=100000 
+	distribtype='bimodal'
 
 	# run the simulation with these parameters
 	eps = 0.516 
-	gamma = 1./3.
-
 	weights = np.ones(len(stimulus_set)).reshape((2,-1))
-	# weights[:,len(weights[0])//2:] = gamma
-	weights[:,len(weights[0])//2:] *= gamma
-	
+
+	if distribtype == 'sym':
+		gamma = 1.
+
+	elif distribtype == 'pos_skewed':	
+		gamma = 1./3.
+		weights[:,len(weights[0])//2:] *= gamma
+
+	elif distribtype == 'neg_skewed':
+		gamma = 3.	
+		weights[:,len(weights[0])//2:] *= gamma
+
+	elif distribtype == 'bimodal':
+		gamma = 1.
+		weights *= 0.1 #1.e-6
+		weights[:,0] = 1.
+		weights[:,-1] = 1.
+	else:
+		raise ValueError (f'\"{distribtype}\" not recognized! Please try again.')
+
 	weights = np.ravel(weights)
 
 	game = Game(stimulus_set, weights=weights)
