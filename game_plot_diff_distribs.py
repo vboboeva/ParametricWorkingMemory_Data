@@ -15,7 +15,7 @@ def percentile_discrete(f, vals, probs):
 			break
 	return v
 
-def plot_scatter(stimulus_set, scattervals, performvals, eps, num_stimpairs):
+def plot_scatter(stimulus_set, scattervals, performvals, eps, gamma, num_stimpairs):
 
 	fig, axs = plt.subplots(1,1,figsize=(2.25,2))
 	scat=axs.scatter(stimulus_set[:num_stimpairs,0],stimulus_set[:num_stimpairs,1], marker='s', s=40, c=scattervals[:num_stimpairs], cmap=plt.cm.coolwarm, vmin=0, vmax=1)
@@ -35,8 +35,8 @@ def plot_scatter(stimulus_set, scattervals, performvals, eps, num_stimpairs):
 	axs.spines['right'].set_visible(False)
 	axs.spines['top'].set_visible(False)
 	
-	fig.savefig("figs/scatter_s1_s2_eps%.2f.png"%(eps), bbox_inches='tight')
-	fig.savefig("figs/scatter_s1_s2_eps%.2f.svg"%(eps), bbox_inches='tight')
+	fig.savefig("figs/scatter_s1_s2_eps%.2f_gamma%.2f.png"%(eps,gamma), bbox_inches='tight')
+	fig.savefig("figs/scatter_s1_s2_eps%.2f_gamma%.2f.svg"%(eps,gamma), bbox_inches='tight')
 
 def plot_fit_and_distribution(xd,yd,xf,yf,pi,eps,gamma):
 	fig, ax = plt.subplots(1,1,figsize=(2,2))#, num=1, clear=True)
@@ -44,11 +44,11 @@ def plot_fit_and_distribution(xd,yd,xf,yf,pi,eps,gamma):
 	ax.set_ylim([0.4,1.])
 	# ax.set_xlim([0.15,0.85])
 
-	ax.scatter(xd[:len(xd)//2], yd[:len(xd)//2], color='royalblue', marker='.', label="$s_a > s_b$")
-	ax.scatter(xd[len(xd)//2:], yd[len(xd)//2:], color='crimson', marker='.', label="$s_a < s_b$")	
+	ax.scatter(xd[:len(xd)//2], yd[:len(xd)//2], color='crimson', marker='.', label="$s_a > s_b$")
+	ax.scatter(xd[len(xd)//2:], yd[len(xd)//2:], color='royalblue', marker='.', label="$s_a < s_b$")	
 
-	ax.plot(xf[:len(xf)//2], yf[:len(xf)//2], color='royalblue')
-	ax.plot(xf[len(xf)//2:], yf[len(xf)//2:], color='crimson')
+	ax.plot(xf[:len(xf)//2], yf[:len(xf)//2], color='crimson')
+	ax.plot(xf[len(xf)//2:], yf[len(xf)//2:], color='royalblue')
 
 	if eps is not None:
 		ax.plot([xd[0],xd[0]], [-1, 0], color='black', label="fit, $\epsilon=%.2f$"%eps)
@@ -70,7 +70,7 @@ def plot_fit_and_distribution(xd,yd,xf,yf,pi,eps,gamma):
 	
 	ax.set_xlabel("Stimulus 1")
 	ax.set_ylabel("Performance")
-	ax2.set_ylabel("Probability, $\pi$")
+	ax2.set_ylabel("Probability $p_m$")
 
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
@@ -85,10 +85,10 @@ if __name__ == "__main__":
 	
 	# number of trials within each session
 	num_trials=100000 
-	distribtype='bimodal'
+	distribtype='neg_skewed'
 
 	# run the simulation with these parameters
-	eps = 0.516 
+	eps = 0.25 
 	weights = np.ones(len(stimulus_set)).reshape((2,-1))
 
 	if distribtype == 'sym':
@@ -120,7 +120,7 @@ if __name__ == "__main__":
 	# Simulate and plot 
 	stimuli, readout, labels = game.simulate(eps, num_trials)
 	performvals, scattervals = scatter(stimulus_set, stimuli, readout, labels) 
-	plot_scatter(stimulus_set, scattervals, performvals, eps, num_stimpairs)
+	plot_scatter(stimulus_set, scattervals, performvals, eps, gamma, num_stimpairs)
 
 	# PLOT the simulation and the analytical with the error rate entered above
 	performvals_analytic = 1. - eps * game.prob_error
