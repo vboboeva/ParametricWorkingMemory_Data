@@ -86,7 +86,7 @@ def plot_hmatrix_bias(stimulus_set, stimuli, readout, eps):
 
 	for i in range(num_stimpairs):
 		ydata=B[:,i]*100
-		axs.scatter(xdata, ydata, alpha=0.5, s=5)
+		#axs.scatter(xdata, ydata, alpha=0.5, s=5)
 		popt, pcov = curve_fit(func, xdata, ydata)
 		axs.plot(xdata, func(xdata, popt[0], popt[1]), alpha=0.3)
 
@@ -98,8 +98,8 @@ def plot_hmatrix_bias(stimulus_set, stimuli, readout, eps):
 
 	axs.set_xticks(np.arange(0,6)) 
 	axs.set_xticklabels(['%.1f,%.1f'%(stimulus_set[i,0], stimulus_set[i,1] ) for i in range(6) ],  rotation=30)
-	axs.set_ylim(-25,25)
-	axs.set_xlabel("Previous trial")
+	#axs.set_ylim(-25,25)
+	axs.set_xlabel("Previous trial stim. pair $(s_1, s_2)$")
 	axs.set_ylabel("Bias stimulus 1 $>$ stimulus 2 ($\%$)")
 	axs.spines['right'].set_visible(False)
 	axs.spines['top'].set_visible(False)
@@ -115,7 +115,7 @@ if __name__ == "__main__":
 	num_stimpairs=12
 
 	# run the simulation with these parameters, PRODUCE FIG 4F
-	eps = 0.516 #float(sys.argv[1])
+	eps = 0.253 #float(sys.argv[1])
 
 	game = Game(stimulus_set)
 	np.random.seed(1987) #int(params[index,2])) #time.time)	
