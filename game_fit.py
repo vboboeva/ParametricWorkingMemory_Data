@@ -7,11 +7,11 @@ def plot_fit(xd,yd,xf,yf,datatype,eps,delta,gamma):
 	fig, ax = plt.subplots(1,1,figsize=(2,2))
 	
 
-	ax.scatter(xd[:len(xd)//2], yd[:len(xd)//2], color='royalblue', marker='.')#, label="Stim 1 $>$ Stim 2")
-	ax.scatter(xd[len(xd)//2:], yd[len(xd)//2:], color='crimson', marker='.')#, label="Stim 1 $<$ Stim 2")	
+	ax.scatter(xd[:len(xd)//2], yd[:len(xd)//2], color='crimson', marker='.')#, label="Stim 1 $>$ Stim 2")
+	ax.scatter(xd[len(xd)//2:], yd[len(xd)//2:], color='royalblue', marker='.')#, label="Stim 1 $<$ Stim 2")	
 
-	ax.plot(xf[:len(xf)//2], yf[:len(xf)//2], color='royalblue')
-	ax.plot(xf[len(xf)//2:], yf[len(xf)//2:], color='crimson')
+	ax.plot(xf[:len(xf)//2], yf[:len(xf)//2], color='crimson')
+	ax.plot(xf[len(xf)//2:], yf[len(xf)//2:], color='royalblue')
 
 	# to put a legend
 	if eps is not None:
