@@ -1,5 +1,13 @@
 from game_functions import Game
-from data import network_stimulus_set, network_performvals, rats_stimulus_set, rats_performvals, ha_stimulus_set, ha_performvals, ht_stimulus_set, ht_performvals
+from data import network_stimulus_set, network_performvals
+from data import rats_stimulus_set, rats_performvals 
+from data import ha_stimulus_set_uniform, ha_performvals_uniform
+from data import ha_stimulus_set_NegSkewed, ha_performvals_NegSkewed, ha_weights_NegSkewed, ha_pi_NegSkewed
+from data import ha_stimulus_set_Bimodal, ha_performvals_Bimodal, ha_weights_Bimodal, ha_pi_Bimodal
+
+
+#ht_stimulus_set, ht_performvals \
+
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -26,6 +34,9 @@ def plot_scatter(stimulus_set, scattervals, performvals, num_stimpairs, whichspe
 		# axs.set_yticklabels([stimulus_set[0,:]])
 		axs.set_xlim(50,100)
 		axs.set_ylim(50,100)
+	elif whichspecies == 'haU' or 'haN' or 'haB':
+		axs.set_xlim(55,80)
+		axs.set_ylim(55,80)
 
 	plt.colorbar(scat,ax=axs,ticks=[0,0.5,1])
 	axs.spines['right'].set_visible(False)
@@ -67,36 +78,99 @@ def plot_fit(xd,yd,xf,yf,datatype,eps,delta=None,gamma=None):
 	fig.savefig("figs/performance_fs1_%s.png"%(datatype), bbox_inches='tight')
 	fig.savefig("figs/performance_fs1_%s.svg"%(datatype), bbox_inches='tight')
 
-
-
 if __name__ == "__main__":
 
 	SimulationName='game'
-	stimulus_set = network_stimulus_set
-
 	num_trials=100000 # number of trials within each session	
 
-	game = Game(stimulus_set)
-	num_stimpairs=game.N
+	# game = Game(stimulus_set)
+	# num_stimpairs=game.N
 
 	np.random.seed(1987) #int(params[index,2])) #time.time)	
 
 	# OBTAIN FITTED PARAMETERS: EPS DELTA GAMMA
 
-	XDATA=[rats_stimulus_set, ha_stimulus_set, ht_stimulus_set, network_stimulus_set] 
-	YDATA=[rats_performvals, ha_performvals, ht_performvals, network_performvals]
-	labels=['rats', 'ha', 'ht', 'net']
+	# XDATA=[rats_stimulus_set, ha_stimulus_set, ht_stimulus_set, network_stimulus_set] 
+	# YDATA=[rats_performvals, ha_performvals, ht_performvals, network_performvals]
+	# labels=['rats', 'ha', 'ht', 'net']
+
+	XDATA=[ha_stimulus_set_uniform, ha_stimulus_set_NegSkewed, ha_stimulus_set_Bimodal] 
+	YDATA=[ha_performvals_uniform, ha_performvals_NegSkewed, ha_performvals_Bimodal]
+	labels=['haU', 'haN', 'haB']
+
+	# # generate synthetic data for stimulus distribution
+	# # (to replace with the actual data of bump location in PPC)
+	# N_vals = 100
+	# pi = np.zeros((2, N_vals))
+	# values = np.linspace(-0.1,1.1,N_vals)
+	# probas = 1.0 / ( .1 + (values - 0.5)**2 ) # some truncated power law distribution
+	# probas /= np.sum(probas)
+
+	# create 'pi' from data -- from PPC bump location
+	sample = np.load("mymaxPPC.npy")	
+	counts, bins = np.histogram(sample, bins=20, density=True)
+	values = (bins[1:] + bins[:-1])/2
+	probas = counts/np.sum(counts)
+	pi = np.array([values, probas])
 
 	# FIT the data: PRODUCE FIG 4D LEFT AND RIGHT
-	for i, stimulus_set in enumerate(XDATA):
-		print("------------ {} ------------".format(labels[i]))
-		performvals=YDATA[i]
+	for i, (stimulus_set, performvals, label) in enumerate(zip(XDATA,YDATA,labels)):
+
+		print(f"------------ {label} ------------")
 		try:
-			game = Game(stimulus_set)
-			fitted_param=game.fit(performvals)
+			if label == "net": 
+				stimulus_set = network_stimulus_set
+				game = Game(stimulus_set, pi=pi, model="eps") 
+				# game = Game(stimulus_set, pi=pi, model="eps_delta")
+			elif label == "rats": 
+				stimulus_set = rats_stimulus_set
+				# game = Game(stimulus_set, pi=None, model="eps")
+				game = Game(stimulus_set, weights=None, pi=None, model="eps_delta")
+				# game = Game(stimulus_set, pi=None, model="full")
+			elif label == "haU": 
+				stimulus_set = ha_stimulus_set_uniform
+				# game = Game(stimulus_set, pi=None, model="eps")
+				game = Game(stimulus_set, pi=None, model="eps_delta")
+				# game = Game(stimulus_set, pi=None, model="full")
+			elif label == "haN": 
+				stimulus_set = ha_stimulus_set_NegSkewed
+				weights = ha_weights_NegSkewed
+				# pi = ha_pi_NegSkewed
+				# game = Game(stimulus_set, pi=None, model="eps")
+				game = Game(stimulus_set, weights=weights, model="eps_delta")
+				# game = Game(stimulus_set, pi=pi, model="full")
+			elif label == "haB": 
+				stimulus_set = ha_stimulus_set_Bimodal
+				weights = ha_weights_Bimodal
+				# pi = ha_pi_Bimodal
+				# game = Game(stimulus_set, pi=None, model="eps")
+				game = Game(stimulus_set, weights=weights, model="eps_delta")
+				# game = Game(stimulus_set, pi=pi, model="full")
+
+			num_stimpairs = len(stimulus_set)
+
+			fitted_param=game.fit(performvals/100.)
 			print(fitted_param)
-			performvals_analytic=game.performances(*fitted_param)
-			plot_fit(stimulus_set[:,0],performvals,stimulus_set[:,0],performvals_analytic,'%s'%labels[i],fitted_param[0],fitted_param[1],fitted_param[2])
+			performvals_fit=game.performances(*fitted_param)
+
+			plot_fit(stimulus_set[:,0], performvals/100., stimulus_set[:,0], performvals_fit,'%s'%label,*fitted_param)
+
+			# PLOT THE SCATTER OF REAL DATA
+			scattervals=np.empty(num_stimpairs)
+			# 0 to num_stimpairs/2 are pairs where s1 > s2 with label 0
+			scattervals[0:int(num_stimpairs/2)] = 1.-performvals[0:int(num_stimpairs/2)]/100.
+			# num_stimpairs/2 to num_stimpairs are pairs where s1 < s2 with label 1
+			scattervals[int(num_stimpairs/2):num_stimpairs] = performvals[int(num_stimpairs/2):num_stimpairs]/100.
+			plot_scatter(stimulus_set, scattervals, performvals, num_stimpairs, label, 'empirical')						
+
+			# PLOT THE SCATTER OF FITTED MODEL
+			scattervals_fit=np.empty(num_stimpairs)
+			# 0 to num_stimpairs/2 are pairs where s1 > s2 with label 0
+			scattervals_fit[0:int(num_stimpairs/2)] = 1.-performvals_fit[0:int(num_stimpairs/2)]
+			# num_stimpairs/2 to num_stimpairs are pairs where s1 < s2 with label 1
+			scattervals_fit[int(num_stimpairs/2):num_stimpairs] = performvals_fit[int(num_stimpairs/2):num_stimpairs]
+			plot_scatter(stimulus_set, scattervals_fit, performvals_fit*100, num_stimpairs, label, 'fit')						
+
 		except:
-			raise ValueError("Something wrong with \"{}\"".format(labels[i]))
+			raise ValueError(f"Something wrong with \"{label}\"")
 
