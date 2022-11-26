@@ -6,7 +6,7 @@ from matplotlib import cm, use
 
 def plot_scatter(stimulus_set, scattervals, performvals, eps, num_stimpairs):
 
-	fig, axs = plt.subplots(1,1,figsize=(2.25,2))
+	fig, axs = plt.subplots(1,1,figsize=(1.75,1.5))
 	scat=axs.scatter(stimulus_set[:num_stimpairs,0],stimulus_set[:num_stimpairs,1], marker='s', s=40, c=scattervals[:num_stimpairs], cmap=plt.cm.coolwarm, vmin=0, vmax=1)
 
 	for i in range(int(num_stimpairs/2)):
@@ -28,7 +28,7 @@ def plot_scatter(stimulus_set, scattervals, performvals, eps, num_stimpairs):
 	fig.savefig("figs/scatter_s1_s2_eps%.2f.svg"%(eps), bbox_inches='tight')
 
 def plot_fit(xd,yd,xf,yf,eps):
-	fig, ax = plt.subplots(1,1,figsize=(2,2))#, num=1, clear=True)
+	fig, ax = plt.subplots(1,1,figsize=(1.5,1.5))#, num=1, clear=True)
 	
 	ax.set_ylim([0.4,1.])
 	# ax.set_xlim([0.15,0.85])
@@ -55,7 +55,7 @@ def plot_hmatrix_bias(stimulus_set, stimuli, readout, eps):
 	num_stimpairs=len(stimulus_set)
 	B, H =history(stimulus_set, stimuli, readout, num_stimpairs)
 
-	fig, axs = plt.subplots(1,1,figsize=(2.2,2))
+	fig, axs = plt.subplots(1,1,figsize=(1.75,1.5))
 
 	im=axs.imshow(H[:num_stimpairs,:num_stimpairs], cmap=cm.Purples)
 	#im=ax.imshow(responsevals[:8,:8], cmap=cm.Purples)
@@ -76,7 +76,7 @@ def plot_hmatrix_bias(stimulus_set, stimuli, readout, eps):
 	fig.savefig("figs/matrix_eps%.2f.svg"%(eps), bbox_inches="tight")
 
 
-	fig, axs = plt.subplots(1,1,figsize=(2,2))#, num=1, clear=True)
+	fig, axs = plt.subplots(1,1,figsize=(1.5,1.5))#, num=1, clear=True)
 	#axs.axhline(0, color='k')
 	xdata=np.arange(int(num_stimpairs/2))
 	from scipy.optimize import curve_fit

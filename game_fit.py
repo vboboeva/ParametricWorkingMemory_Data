@@ -3,19 +3,57 @@ from data import network_stimulus_set, network_performvals, rats_stimulus_set, r
 import numpy as np
 import matplotlib.pyplot as plt
 
-def plot_fit(xd,yd,xf,yf,datatype,eps,delta,gamma):
-	fig, ax = plt.subplots(1,1,figsize=(2,2))
+def plot_scatter(stimulus_set, scattervals, performvals, num_stimpairs, whichspecies, datatype):
+
+	fig, axs = plt.subplots(1,1,figsize=(1.75,1.5))
+	scat=axs.scatter(stimulus_set[:num_stimpairs,0],stimulus_set[:num_stimpairs,1], marker='s', s=30, c=scattervals[:num_stimpairs], cmap=plt.cm.coolwarm, vmin=0, vmax=1)
+
+	for i in range(int(num_stimpairs/2)):
+		axs.text(stimulus_set[i,0]+0.05,stimulus_set[i,1]-0.15,'%d'%(performvals[i]))
+
+	for i in range(int(num_stimpairs/2),num_stimpairs):
+		axs.text(stimulus_set[i,0]-0.20,stimulus_set[i,1]+0.05,'%d'%(performvals[i]))
+
+	axs.plot(np.linspace(0,1,10),np.linspace(0,1,10), color='black', lw=0.5)
+	axs.set_xlabel("Stimulus 1")
+	axs.set_ylabel("Stimulus 2")
+
+	if whichspecies == 'net':
+		axs.set_yticks([0,0.5,1])
+		axs.set_yticklabels([0,0.5,1])
+	elif whichspecies == 'rats':
+		# axs.set_yticks([stimulus_set[0,:]])
+		# axs.set_yticklabels([stimulus_set[0,:]])
+		axs.set_xlim(50,100)
+		axs.set_ylim(50,100)
+
+	plt.colorbar(scat,ax=axs,ticks=[0,0.5,1])
+	axs.spines['right'].set_visible(False)
+	axs.spines['top'].set_visible(False)
 	
+	fig.savefig("figs/scatter_s1_s2_%s_%s.png"%(whichspecies, datatype), bbox_inches='tight')
+	fig.savefig("figs/scatter_s1_s2_%s_%s.svg"%(whichspecies, datatype), bbox_inches='tight')
 
-	ax.scatter(xd[:len(xd)//2], yd[:len(xd)//2], color='crimson', marker='.')#, label="Stim 1 $>$ Stim 2")
-	ax.scatter(xd[len(xd)//2:], yd[len(xd)//2:], color='royalblue', marker='.')#, label="Stim 1 $<$ Stim 2")	
+def plot_fit(xd,yd,xf,yf,datatype,eps,delta=None,gamma=None):
+	fig, ax = plt.subplots(1,1,figsize=(1.5,1.5))
+	
+	ax.scatter(xd[:len(xd)//2], yd[:len(xd)//2], color='royalblue', marker='.')#, label="Stim 1 $>$ Stim 2")
+	ax.scatter(xd[len(xd)//2:], yd[len(xd)//2:], color='crimson', marker='.')#, label="Stim 1 $<$ Stim 2")	
 
-	ax.plot(xf[:len(xf)//2], yf[:len(xf)//2], color='crimson')
-	ax.plot(xf[len(xf)//2:], yf[len(xf)//2:], color='royalblue')
+	ax.plot(xf[:len(xf)//2], yf[:len(xf)//2], color='royalblue')
+	ax.plot(xf[len(xf)//2:], yf[len(xf)//2:], color='crimson')
+	plt.axvline(np.mean(stimulus_set), ls='--', color='gray')
 
 	# to put a legend
+	label=""
 	if eps is not None:
-		ax.plot([xd[0],xd[0]], [-1, 0], color='black', label="$\epsilon = %.2f$ \n $\delta=%.2f$ \n $\gamma=%.2f$"%(eps, delta, gamma))
+		label+="$\epsilon = %.2f$"%(eps,)
+	if delta is not None:
+		label+="\n$\delta=%.2f$"%(delta,)
+	if gamma is not None:
+		label+="\n$\gamma=%.2f$"%(gamma,)
+	
+	ax.plot([xd[0],xd[0]], [-1, 0], color='black', label=label)
 
 	h, l = ax.get_legend_handles_labels()
 	ax.legend(h, l, loc='best')
