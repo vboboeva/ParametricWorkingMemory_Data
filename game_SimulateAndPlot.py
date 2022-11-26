@@ -1,4 +1,4 @@
-from game import Game, scatter, history #, plot_scatter, plot_fit, plot_fit_and_distribution
+from game_functions import Game, scatter, history #, plot_scatter, plot_fit, plot_fit_and_distribution
 from data import network_stimulus_set, network_performvals, rats_stimulus_set, rats_performvals, ha_stimulus_set, ha_performvals, ht_stimulus_set, ht_performvals
 import numpy as np
 import matplotlib.pyplot as plt
