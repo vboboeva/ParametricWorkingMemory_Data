@@ -1,5 +1,5 @@
 from game_functions import Game, scatter, Game_Bayes
-from data import network_stimulus_set, network_performvals, rats_stimulus_set, rats_performvals, ha_stimulus_set, ha_performvals, ht_stimulus_set, ht_performvals
+from data import network_stimulus_set, network_performvals
 import numpy as np
 import matplotlib.pyplot as plt
 from matplotlib import cm, use
@@ -143,24 +143,29 @@ if __name__ == "__main__":
 
 	# run the simulation with these parameters
 	eps = 0.25 
-	weights = np.ones(len(stimulus_set)).reshape((2,-1))
+	# weights = np.ones(len(stimulus_set)).reshape((2,-1))
 
 	if distribtype == 'sym':
 		gamma = 1.
+		weights = np.ones(len(stimulus_set))
 
 	elif distribtype == 'pos_skewed':	
-		gamma = 1./3.
-		weights[:,len(weights[0])//2:] *= gamma
+		lam = -np.log(5.)/(len(stimulus_set)//2 - 1)
+		weights = np.exp(lam * np.arange(len(stimulus_set)//2))
+		weights = np.hstack(2*[weights])
+		gamma=np.exp(lam)
 
 	elif distribtype == 'neg_skewed':
-		gamma = 3.	
-		weights[:,len(weights[0])//2:] *= gamma
+		lam = np.log(5.)/(len(stimulus_set)//2 - 1)
+		weights = np.exp(lam * np.arange(len(stimulus_set)//2))
+		weights = np.hstack(2*[weights])
+		gamma=np.exp(lam)
 
 	elif distribtype == 'bimodal':
-		gamma = 1.
-		weights *= 0.1 #1.e-6
-		weights[:,0] = 1.
-		weights[:,-1] = 1.
+		lam = 1.; weights = np.exp(lam * np.arange(len(stimulus_set)//2))
+		weights = np.hstack(2*[weights + weights[::-1]])
+		gamma=np.exp(lam)
+	
 	else:
 		raise ValueError (f'\"{distribtype}\" not recognized! Please try again.')
 

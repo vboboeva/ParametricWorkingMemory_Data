@@ -32,7 +32,7 @@ ha_weights_NegSkewed = np.hstack(2*[weights])
 ha_pi_NegSkewed = set_pi( ha_stimulus_set_NegSkewed, ha_weights_NegSkewed )
 
 ha_stimulus_set_Bimodal = np.array([ [62.7,60], [65.4,62.7], [68.1,65.4], [70.8,68.1], [73.5,70.8], [60,62.7], [62.7,65.4], [65.4,68.1], [68.1,70.8], [70.8,73.5] ])
-ha_performvals_Bimodal = np.array([82, 80, 68, 60, 48, 57, 71, 79, 89, 96 ])#/100.
+ha_performvals_Bimodal = np.array([78, 79, 64, 56, 47, 55, 73, 78, 89, 95 ])#/100.
 lam = 1.; weights = np.exp(lam * np.arange(len(ha_stimulus_set_Bimodal)//2))
 ha_weights_Bimodal = np.hstack(2*[weights + weights[::-1]])
 ha_pi_Bimodal = set_pi( ha_stimulus_set_Bimodal, ha_weights_Bimodal )
