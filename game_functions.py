@@ -348,8 +348,7 @@ class Game (object):
             opt = minimize(distance, np.array([0.]), **opt_options)
             print("optimal error probability eps = %.3f"%(opt['x'][0],))
         else:
-            raise ValueError("Something teribly teribly wrong happened...")
-
+            raise ValueError("Something terribly terribly wrong happened...")
         return opt['x']
 
     def plot_stimulus_distr (self, filename='stimulus_distr.svg'):
@@ -367,13 +366,12 @@ class Game (object):
         ax.set_yticklabels([0,0.1,0.2])
         fig.savefig(filename,bbox_inches='tight')
 
-
-
 class Game_Bayes (Game):
     def __init__ (self, stimulus_set, sigma=0.1, **kwargs):
         super().__init__(stimulus_set, **kwargs)
         # width of the likelihood (for the first stimulus)
         self.sigma = sigma
+        self.stimulus_set=stimulus_set
         # possible values of internal representations
         self.r_vals = np.linspace(
                         np.min(stimulus_set)-5*self.sigma,
@@ -411,6 +409,7 @@ class Game_Bayes (Game):
         _res = np.sum(self._posterior[mask], axis=0)
         mask = self.s_vals == L2
         _res += .5*np.sum(self._posterior[mask], axis=0)
+        # print(_res)
         return _res
 
     def response_probability (self):
@@ -421,7 +420,47 @@ class Game_Bayes (Game):
         _prob = np.zeros(2*(len(self.s_vals),))
         for i, L1 in enumerate(self.s_vals):
             for j, L2 in enumerate(self.s_vals):
+                # print(i,j)
                 _psi = self._psi(L2)
                 mask = _psi > 0.5
                 _prob[i,j] = np.sum(self.dr * self._likelihood(self.r_vals, L1)[mask])
+        # print("_prob",_prob)
         return _prob
+
+    def performances_bayes (self):
+        p_label = self.response_probability()
+        performvals_bayes = np.zeros(len(self.stimulus_set))
+        s_vals = list(np.unique(self.stimulus_set))
+        
+        for k, (s1,s2) in enumerate(self.stimulus_set):
+            i = s_vals.index(s1)
+            j = s_vals.index(s2)
+            performvals_bayes[k] = p_label[i,j] if s1 > s2 else 1. - p_label[i,j]
+        # print(performvals_bayes)
+        return performvals_bayes
+
+    def fit (self, performvals):
+
+        def distance (pars):
+            self.sigma,= pars
+            # possible values of internal representations
+            self.r_vals = np.linspace(
+                            np.min(self.stimulus_set)-5*self.sigma,
+                            np.max(self.stimulus_set)+5*self.sigma,
+                            1000
+                        )
+            # print(self.stimulus_set)
+            self.dr = self.r_vals[1] - self.r_vals[0]
+            self.s_vals = self.stimuli_vals
+            self._set_posterior()
+
+            relative_error = self.performances_bayes() - performvals
+            relative_error /= performvals 
+            # print('relative error=',relative_error)
+            return np.sum(relative_error*relative_error)
+
+        opt_options = {}
+
+        opt = minimize(distance, np.array([1.]), **opt_options)
+        # print("width of likelihood sigma = %.3f"%(opt['x'][0],))
+        return opt['x']

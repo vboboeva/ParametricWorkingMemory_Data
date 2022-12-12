@@ -1,4 +1,6 @@
 from game_functions import Game
+from game_functions import Game_Bayes
+import color_palette as cp
 from data import network_stimulus_set, network_performvals
 from data import rats_stimulus_set, rats_performvals 
 from data import ha_stimulus_set_uniform, ha_performvals_uniform
@@ -78,6 +80,12 @@ def plot_fit(xd,yd,xf,yf,datatype,eps,delta=None,gamma=None):
 	fig.savefig("figs/performance_fs1_%s.png"%(datatype), bbox_inches='tight')
 	fig.savefig("figs/performance_fs1_%s.svg"%(datatype), bbox_inches='tight')
 
+def mean_squared_error(act, pred):
+   diff = pred - act
+   differences_squared = diff ** 2
+   mean_diff = differences_squared.mean()
+   return mean_diff
+
 if __name__ == "__main__":
 
 	SimulationName='game'
@@ -114,6 +122,8 @@ if __name__ == "__main__":
 	pi = np.array([values, probas])
 
 	# FIT the data: PRODUCE FIG 4D LEFT AND RIGHT
+	msevals_stat=[]
+	msevals_bayes=[]
 	for i, (stimulus_set, performvals, label) in enumerate(zip(XDATA,YDATA,labels)):
 
 		print(f"------------ {label} ------------")
@@ -131,6 +141,7 @@ if __name__ == "__main__":
 				stimulus_set = ha_stimulus_set_uniform
 				# game = Game(stimulus_set, pi=None, model="eps")
 				game = Game(stimulus_set, pi=None, model="eps_delta")
+				gameB = Game_Bayes(stimulus_set, pi=None)
 				# game = Game(stimulus_set, pi=None, model="full")
 			elif label == "haN": 
 				stimulus_set = ha_stimulus_set_NegSkewed
@@ -138,6 +149,7 @@ if __name__ == "__main__":
 				# pi = ha_pi_NegSkewed
 				# game = Game(stimulus_set, pi=None, model="eps")
 				game = Game(stimulus_set, weights=weights, model="eps_delta")
+				gameB = Game_Bayes(stimulus_set, weights=weights, pi=None)
 				# game = Game(stimulus_set, pi=pi, model="full")
 			elif label == "haB": 
 				stimulus_set = ha_stimulus_set_Bimodal
@@ -145,32 +157,80 @@ if __name__ == "__main__":
 				# pi = ha_pi_Bimodal
 				# game = Game(stimulus_set, pi=None, model="eps")
 				game = Game(stimulus_set, weights=weights, model="eps_delta")
+				gameB = Game_Bayes(stimulus_set, weights=weights, pi=None)
 				# game = Game(stimulus_set, pi=pi, model="full")
 
-			num_stimpairs = len(stimulus_set)
+			fig, ax = plt.subplots(1,1,figsize=(1.5,1.5))
 
+			# PLOT DATA
+			xd=stimulus_set[:,0]
+			yd=performvals/100.
+			ax.scatter(xd[:len(xd)//2], yd[:len(xd)//2], color='royalblue', marker='.')#, label="Stim 1 $>$ Stim 2")
+			ax.scatter(xd[len(xd)//2:], yd[len(xd)//2:], color='crimson', marker='.')#, label="Stim 1 $<$ Stim 2")	
+
+			# FIT AND PLOT STATISTICAL MODEL
+			print('fit stat model')
 			fitted_param=game.fit(performvals/100.)
-			print(fitted_param)
 			performvals_fit=game.performances(*fitted_param)
+			xf=stimulus_set[:,0]
+			yf=performvals_fit
+			ax.plot(xf[:len(xf)//2], yf[:len(xf)//2], color='royalblue')
+			ax.plot(xf[len(xf)//2:], yf[len(xf)//2:], color='crimson')
+			msevals_stat += [mean_squared_error(yd,yf)]
 
-			plot_fit(stimulus_set[:,0], performvals/100., stimulus_set[:,0], performvals_fit,'%s'%label,*fitted_param)
+			# FIT AND PLOT STATISTICAL MODEL
+			print('fit Bayes')
+			fitted_param=gameB.fit(performvals/100.)
+			performvals_fit=gameB.performances_bayes()
+			xf=stimulus_set[:,0]
+			yf=performvals_fit
+			ax.plot(xf[:len(xf)//2], yf[:len(xf)//2], color='royalblue', ls='--')
+			ax.plot(xf[len(xf)//2:], yf[len(xf)//2:], color='crimson', ls='--')
+			msevals_bayes += [mean_squared_error(yd,yf)]
 
-			# PLOT THE SCATTER OF REAL DATA
-			scattervals=np.empty(num_stimpairs)
-			# 0 to num_stimpairs/2 are pairs where s1 > s2 with label 0
-			scattervals[0:int(num_stimpairs/2)] = 1.-performvals[0:int(num_stimpairs/2)]/100.
-			# num_stimpairs/2 to num_stimpairs are pairs where s1 < s2 with label 1
-			scattervals[int(num_stimpairs/2):num_stimpairs] = performvals[int(num_stimpairs/2):num_stimpairs]/100.
-			plot_scatter(stimulus_set, scattervals, performvals, num_stimpairs, label, 'empirical')						
+			plt.axvline(np.mean(stimulus_set), ls='--', color='gray')
 
-			# PLOT THE SCATTER OF FITTED MODEL
-			scattervals_fit=np.empty(num_stimpairs)
-			# 0 to num_stimpairs/2 are pairs where s1 > s2 with label 0
-			scattervals_fit[0:int(num_stimpairs/2)] = 1.-performvals_fit[0:int(num_stimpairs/2)]
-			# num_stimpairs/2 to num_stimpairs are pairs where s1 < s2 with label 1
-			scattervals_fit[int(num_stimpairs/2):num_stimpairs] = performvals_fit[int(num_stimpairs/2):num_stimpairs]
-			plot_scatter(stimulus_set, scattervals_fit, performvals_fit*100, num_stimpairs, label, 'fit')						
+			ax.set_xlabel("Stimulus 1")
+			ax.set_ylabel("Performance")
+
+			ax.set_ylim([0.4,1.])
+			ax.spines['right'].set_visible(False)
+			ax.spines['top'].set_visible(False)
+			fig.savefig("figs/performance_fs1_%s.png"%(label), bbox_inches='tight')
+			fig.savefig("figs/performance_fs1_%s.svg"%(label), bbox_inches='tight')
+
+			num_stimpairs = len(stimulus_set)
+			# # PLOT THE SCATTER OF REAL DATA
+			# scattervals=np.empty(num_stimpairs)
+			# # 0 to num_stimpairs/2 are pairs where s1 > s2 with label 0
+			# scattervals[0:int(num_stimpairs/2)] = 1.-performvals[0:int(num_stimpairs/2)]/100.
+			# # num_stimpairs/2 to num_stimpairs are pairs where s1 < s2 with label 1
+			# scattervals[int(num_stimpairs/2):num_stimpairs] = performvals[int(num_stimpairs/2):num_stimpairs]/100.
+			# plot_scatter(stimulus_set, scattervals, performvals, num_stimpairs, label, 'empirical')						
+
+			# # PLOT THE SCATTER OF FITTED MODEL
+			# scattervals_fit=np.empty(num_stimpairs)
+			# # 0 to num_stimpairs/2 are pairs where s1 > s2 with label 0
+			# scattervals_fit[0:int(num_stimpairs/2)] = 1.-performvals_fit[0:int(num_stimpairs/2)]
+			# # num_stimpairs/2 to num_stimpairs are pairs where s1 < s2 with label 1
+			# scattervals_fit[int(num_stimpairs/2):num_stimpairs] = performvals_fit[int(num_stimpairs/2):num_stimpairs]
+			# plot_scatter(stimulus_set, scattervals_fit, performvals_fit*100, num_stimpairs, label, 'fit')						
 
 		except:
 			raise ValueError(f"Something wrong with \"{label}\"")
 
+	fig, ax = plt.subplots(1,1,figsize=(1.5,1.5))
+	width=0.6
+	ax.bar(np.arange(0,5,2), msevals_stat, width = width, color=cp.green, label='Stat.')
+	ax.bar(np.arange(0,5,2)+0.5,msevals_bayes, width = width, color=cp.orange, label='Bayes.')
+	# ax.set_ylim(-15,15)
+	ax.set_xticks(np.arange(0,5,2)+width/2)
+	ax.set_xticklabels(['Uni.', 'NegSk.', 'Bimod.'])
+	ax.axhline(0,color='k')
+	ax.set_xlabel("Distribution")
+	ax.set_ylabel("MSE")
+	ax.spines['right'].set_visible(False)
+	ax.spines['top'].set_visible(False)
+	fig.legend()
+	fig.savefig('figs/MSE_DiffDistribs_%s.png'%SimulationName,bbox_inches='tight')
+	fig.savefig('figs/MSE_DiffDistribs_%s.svg'%SimulationName,bbox_inches='tight')

@@ -209,3 +209,4 @@ if __name__ == "__main__":
 	plot_gamefit_bayesfit_and_distribution(stimulus_set[:,0], performvals, stimulus_set[:,0], performvals_analytic, game.pi, eps, gamma, stimulus_set[:,0], performvals_bayes)
 
 	plot_scatter(stimulus_set, scattervals_bayes, performvals_bayes, sigma, gamma, num_stimpairs, 'bayes')
+
