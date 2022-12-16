@@ -22,9 +22,6 @@ from pylab import rcParams
 from scipy.optimize import minimize
 from scipy import stats
 
-#from data import network_stimulus_set, network_performvals, rats_stimulus_set, rats_performvals, ha_stimulus_set, ha_performvals, ht_stimulus_set, ht_performvals
-
-
 # the axes attributes need to be set before the call to subplot
 rc('font',**{'family':'sans-serif','sans-serif':['Arial']}, size=10)
 rc('text', usetex=True)
@@ -367,85 +364,20 @@ class Game (object):
         ax.set_yticklabels([0,0.1,0.2])
         fig.savefig(filename,bbox_inches='tight')
 
-class Game_Bayes (Game):
-    def __init__ (self, stimulus_set, weights, sigma=0.1, **kwargs):
-        super().__init__(stimulus_set, **kwargs)
+class Game_Bayes (object): #Game
+    def __init__ (self, stimulus_set, pi, **kwargs):
+        # super().__init__(stimulus_set, **kwargs)
         # width of the likelihood (for the first stimulus)
-        self.sigma = sigma
         self.stimulus_set=stimulus_set
+        self.pi=pi
+        self.stimuli_vals=np.unique(self.stimulus_set)
         # self._set_posterior()
 
-    def _likelihood (self, R, S):
-        _num = np.exp(-(R - S)**2/(2.*self.sigma**2))
-        _den = np.sqrt(2.*np.pi*self.sigma**2)
+    def _likelihood (self, R, S, sigma):
+        _num = np.exp(-(R - S)**2/(2.*sigma**2))
+        _den = np.sqrt(2.*np.pi*sigma**2)
         return _num/_den
 
-    # def _set_posterior (self):
-    #     '''
-    #     The probabability distribution of L1 given R1,
-    #     evaluated at all pairs (R1, L1)
-    #     '''
-    #     # possible values of internal representations
-    #     self.r_vals = np.linspace(
-    #                     np.min(self.stimulus_set)-5.*self.sigma,
-    #                     np.max(self.stimulus_set)+5.*self.sigma,
-    #                     1000
-    #                 )
-    #     self.dr = self.r_vals[1] - self.r_vals[0]
-    #     self.s_vals = self.stimuli_vals
-    #     _rr, _ss = np.meshgrid(self.r_vals, self.s_vals)
-    #     self._posterior = self._likelihood(_rr, _ss) # (N_S, N_R)
-    #     for i, p in enumerate(self.pi):
-    #         self._posterior[i] *= p
-    #     _norm = np.sum(self._posterior, axis=0)
-    #     self._posterior /= _norm[None,:]
-
-    # @property
-    # def posterior(self):
-    #     self._set_posterior()
-    #     return self._posterior
-
-    # def _psi (self, L2):
-    #     '''
-    #     Cumulative of the posterior above L2
-    #     (inferred probability that L1 > L2 given R1)
-    #     L2 is assumed to be known with certainty
-    #     '''
-    #     mask = self.s_vals > L2
-    #     _res = np.sum(self._posterior[mask], axis=0)
-    #     mask = self.s_vals == L2
-    #     _res += .5*np.sum(self._posterior[mask], axis=0)
-    #     # print(_res)
-    #     return _res
-
-    # def response_probability (self):
-    #     '''
-    #     Probability to infer "L1 > L2" given the true
-    #     values of L1 and L2 (for all values of L1 and L2)
-    #     '''
-    #     self._set_posterior()
-    #     _prob = np.zeros(2*(len(self.s_vals),))
-    #     for i, L1 in enumerate(self.s_vals):
-    #         for j, L2 in enumerate(self.s_vals):
-    #             # print(i,j)
-    #             _psi = self._psi(L2)
-    #             mask = _psi > 0.5
-    #             _prob[i,j] = np.sum(self.dr * self._likelihood(self.r_vals, L1)[mask])
-    #     # print("_prob",_prob)
-    #     return _prob
-
-    # def __performances_bayes (self):
-    #     print("Evaluating performances: sigma = ", self.sigma)
-    #     p_label = self.response_probability()
-    #     performvals_bayes = np.zeros(len(self.stimulus_set))
-    #     s_vals = list(np.unique(self.stimulus_set))
-        
-    #     for k, (s1,s2) in enumerate(self.stimulus_set):
-    #         i = s_vals.index(s1)
-    #         j = s_vals.index(s2)
-    #         performvals_bayes[k] = p_label[i,j] if s1 > s2 else 1. - p_label[i,j]
-    #     # print(performvals_bayes)
-    #     return performvals_bayes
 
     def performances_bayes (self, sigma):
         # print("Evaluating performances: sigma = ", sigma)
@@ -453,13 +385,14 @@ class Game_Bayes (Game):
         r_vals = np.linspace(
                         np.min(self.stimulus_set)-5.*sigma,
                         np.max(self.stimulus_set)+5.*sigma,
-                        1000)
+                        10000)
 
         dr = r_vals[1] - r_vals[0]
         s_vals = self.stimuli_vals
         _rr, _ss = np.meshgrid(r_vals, s_vals)
-        _posterior = self._likelihood(_rr, _ss) # (N_S, N_R)
-        for i, p in enumerate(self.pi):
+        _posterior = self._likelihood(_rr, _ss, sigma) # (N_S, N_R)
+
+        for i, p in enumerate(self.pi[1,:]):
             _posterior[i] *= p
         _norm = np.sum(_posterior, axis=0)
         _posterior /= _norm[None,:]
@@ -474,10 +407,10 @@ class Game_Bayes (Game):
                 _psi += .5*np.sum(_posterior[mask], axis=0)
                 
                 mask = _psi > 0.5
-                p_label[i,j] = np.sum(dr * self._likelihood(r_vals, L1)[mask])
+                p_label[i,j] = np.sum(dr * self._likelihood(r_vals, L1, sigma)[mask])
 
         performvals_bayes = np.zeros(len(self.stimulus_set))
-        s_vals = list(np.unique(self.stimulus_set))
+        s_vals = list(self.stimuli_vals)
         
         for k, (s1,s2) in enumerate(self.stimulus_set):
             i = s_vals.index(s1)
@@ -486,24 +419,21 @@ class Game_Bayes (Game):
 
         return performvals_bayes
 
-
     def loss_function (self, performvals, sigma):
         error = self.performances_bayes(sigma) - performvals
         return np.sum(error**2)
 
     def fit (self, performvals):
-
-        def distance (pars):
-            sigma,= pars
-            return self.loss_function(performvals, sigma)
-
-        def callbackF(Xi):
-            print(f"{Xi}    {distance(Xi)}")
-
-        opt_options = dict(callback=callbackF)
-
-        # callbackF(np.array([0.1]))
-
-        opt = minimize(distance, np.array([.1]), **opt_options)
-        print("optimal likelihood width sigma = %.3f"%(opt['x'][0],))
-        return opt['x']
+        # simple search for minimum
+        sigmas = np.linspace(0.01, 1, 1000)
+        losses = []
+        best_sigma = np.min(sigmas)
+        best_loss = np.inf
+        for sigma in sigmas:
+            loss = self.loss_function(performvals, sigma)
+            losses.append(loss)
+            if loss < best_loss:
+                best_loss = loss
+                best_sigma = sigma
+        print("optimal likelihood width sigma = %.3f"%best_sigma)
+        return np.array([best_sigma])

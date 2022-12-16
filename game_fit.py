@@ -16,7 +16,7 @@ def mean_squared_error(act, pred):
 
 if __name__ == "__main__":
 
-	SubjectName='AllSubjects'
+	SubjectName='Thomas'
 	DistribType='Bimodal'
 	species='Human'
 
@@ -56,7 +56,7 @@ if __name__ == "__main__":
 			# game = Game(stimulus_set, pi=None, model="eps")
 			game = Game(stimulus_set, weights=weights, model="eps_delta")
 			# game = Game(stimulus_set, pi=pi, model="full")
-			gameB = Game_Bayes(stimulus_set, weights=weights, pi=None)
+			gameB = Game_Bayes(stimulus_set, pi=pi)
 		elif DistribType == 'Bimodal':
 			lam = 1.
 			weights0 = np.exp(lam * np.arange(len(stimulus_set)//2))
@@ -65,7 +65,7 @@ if __name__ == "__main__":
 			# game = Game(stimulus_set, pi=None, model="eps")
 			game = Game(stimulus_set, weights=weights, model="eps_delta")
 			# game = Game(stimulus_set, pi=pi, model="full")
-			gameB = Game_Bayes(stimulus_set, weights=weights, pi=None, sigma=None)
+			gameB = Game_Bayes(stimulus_set, pi=pi, sigma=None)
 
 	fig, ax = plt.subplots(1,1,figsize=(1.5,1.5))
 
@@ -97,10 +97,9 @@ if __name__ == "__main__":
 	# FIT AND PLOT BAYESIAN MODEL
 	print('fit Bayes')
 	fitted_param=gameB.fit(yd)
-	# gameB.sigma = 0.1
 	print(fitted_param)
-	print(stimulus_set)
-	performvals_fit=gameB.performances_bayes()
+	performvals_fit=gameB.performances_bayes(fitted_param[0])
+	# performvals_fit=gameB.performances_bayes(fitted_param[0]*1.5)
 	xf=stimulus_set[:,0]
 	yf=performvals_fit
 	ax.plot(xf[:len(xf)//2], yf[:len(xf)//2], color='royalblue', ls='--')
@@ -115,17 +114,15 @@ if __name__ == "__main__":
 	ax.spines['top'].set_visible(False)
 
 	## RIGHT y-axis
-	vals = np.unique(xd.ravel())
-	print(np.shape(vals), np.shape(game.pi))
-	median = (percentile_discrete(0.49, vals, game.pi) + percentile_discrete(0.51, vals, game.pi))/2.
+	# median = (percentile_discrete(0.49, pi[0,:], pi[1,:]) + percentile_discrete(0.51, pi[0,:], [1,:]))/2.
 	ax2 = ax.twinx()
 	ax2.set_ylim([0,0.5])
 	color='gray'
 	ax2.yaxis.label.set_color(color)
 	# ax2.spines['right'].set_color(color)
 	ax2.tick_params(axis='y', colors=color)
-	ax2.vlines(median, 0, 1, color='black', lw=1, ls='--')
-	ax2.vlines(vals, 0, gameB.pi, color=color, lw=4)
+	# ax2.vlines(median, 0, 1, color='black', lw=1, ls='--')
+	ax2.vlines(pi[0,:], 0, pi[1,:], color=color, lw=4)
 	ax2.set_yticks([0,0.25,0.5])
 	ax2.set_yticklabels([0,0.25,0.5])
 	ax2.set_ylabel("Probability $p_m$")

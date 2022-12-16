@@ -69,7 +69,6 @@ def plot_gamefit_and_distribution(xd,yd,xf,yf,pi,eps,gamma):
 	plt.close(fig)
 
 def plot_gamefit_bayesfit_and_distribution(sigma,xd,yd,xf,yf,pi,eps,gamma,xb,yb):
-	print('fffffffffffff',sigma)
 	fig, ax = plt.subplots(1,1,figsize=(1.5,1.5))#, num=1, clear=True)
 	
 	ax.set_ylim([0.4,1.])
@@ -182,42 +181,15 @@ if __name__ == "__main__":
 
 	# PLOT the simulation and the analytical with the error rate entered above
 	performvals_analytic = 1. - eps * game.prob_error
-	# plot_gamefit_and_distribution(stimulus_set[:,0], performvals, stimulus_set[:,0], performvals_analytic, game.pi, eps, gamma)
 
-	# Get values according to Bayes
-
-	# for sigma in [0.05, 0.08, 0.12]:
-	sigma=0.08
-
-
-	# sigmas = np.linspace(0.01, 1., 100)
-	# losses = []
-	# best_sigma = np.min(sigmas)
-	# best_loss = np.inf
-	# for sigma in sigmas:
-	# 	gb = Game_Bayes(stimulus_set, weights=weights, sigma=sigma)
-	# 	loss = gb.loss_function(performvals, sigma)
-	# 	losses.append(loss)
-	# 	if loss < best_loss:
-	# 		best_loss = loss
-	# 		best_sigma = sigma
-
-	# plt.figure()
-	# plt.plot(sigmas, losses)
-	# plt.show()
-	# # exit()
-
-	gb = Game_Bayes(stimulus_set, weights=weights, pi=pi, sigma=0.1)
-
-	# gb = Game_Bayes(stimulus_set, weights=weights, sigma=sigma)
-	
-	# print('hhhhh',gb.sigma)
+	# FIT that curve with the Bayesian model, find best_sigma
+	gb = Game_Bayes(stimulus_set, pi=pi)
 	best_sigma, = gb.fit(performvals)
 
 	performvals_bayes = gb.performances_bayes(best_sigma)
 	print(performvals_bayes)
 
 	# plot everything
-	plot_gamefit_bayesfit_and_distribution(gb.sigma, stimulus_set[:,0], performvals, stimulus_set[:,0], performvals_analytic, game.pi, eps, gamma, stimulus_set[:,0], performvals_bayes)
+	plot_gamefit_bayesfit_and_distribution(best_sigma, stimulus_set[:,0], performvals, stimulus_set[:,0], performvals_analytic, pi[1,:], eps, gamma, stimulus_set[:,0], performvals_bayes)
 
 	# plot_scatter(stimulus_set, scattervals_bayes, performvals_bayes, sigma, gamma, num_stimpairs, 'bayes')
