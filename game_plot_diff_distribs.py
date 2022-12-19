@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from matplotlib import cm, use
 from helper_percentile_discrete import percentile_discrete
 from helper_set_pi import set_pi
+import sys
 
 def plot_scatter(stimulus_set, scattervals, performvals, eps, gamma, num_stimpairs,condition):
 
@@ -26,8 +27,8 @@ def plot_scatter(stimulus_set, scattervals, performvals, eps, gamma, num_stimpai
 	axs.spines['right'].set_visible(False)
 	axs.spines['top'].set_visible(False)
 	
-	fig.savefig("figs1/scatter_s1_s2_eps%.2f_gamma%.2f_%s.png"%(eps,gamma,condition), bbox_inches='tight')
-	fig.savefig("figs1/scatter_s1_s2_eps%.2f_gamma%.2f_%s.svg"%(eps,gamma,condition), bbox_inches='tight')
+	fig.savefig("figs/scatter_s1_s2_eps%.2f_gamma%.2f_%s.png"%(eps,gamma,condition), bbox_inches='tight')
+	fig.savefig("figs/scatter_s1_s2_eps%.2f_gamma%.2f_%s.svg"%(eps,gamma,condition), bbox_inches='tight')
 
 def plot_gamefit_and_distribution(xd,yd,xf,yf,pi,eps,gamma):
 	fig, ax = plt.subplots(1,1,figsize=(1.5,1.5))#, num=1, clear=True)
@@ -108,8 +109,8 @@ def plot_gamefit_bayesfit_and_distribution(sigma,xd,yd,xf,yf,pi,eps,gamma,xb,yb)
 
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
-	fig.savefig("figs1/performance_fs1_stimdistrib_eps%.2f_gamma%.2f_sigma%.4f.png"%(eps,gamma,sigma), bbox_inches='tight')
-	fig.savefig("figs1/performance_fs1_stimdistrib_eps%.2f_gamma%.2f_sigma%.4f.svg"%(eps,gamma,sigma), bbox_inches='tight')
+	fig.savefig("figs/performance_fs1_stimdistrib_eps%.2f_gamma%.2f_sigma%.4f.png"%(eps,gamma,sigma), bbox_inches='tight')
+	fig.savefig("figs/performance_fs1_stimdistrib_eps%.2f_gamma%.2f_sigma%.4f.svg"%(eps,gamma,sigma), bbox_inches='tight')
 
 def plot_post_proba_bayes(s_vals, p_label):
 	fig, ax = plt.subplots()
@@ -130,39 +131,39 @@ if __name__ == "__main__":
 	stimulus_set = network_stimulus_set
 	
 	# number of trials within each session
-	num_trials=100000 
-	distribtype='bimodal'
+	num_trials=1000000
+	DistrType=str(sys.argv[1])
+	eps = float(sys.argv[2]) 
 
 	# run the simulation with these parameters
-	eps = 0.25 
 	# weights = np.ones(len(stimulus_set)).reshape((2,-1))
 
-	if distribtype == 'sym':
+	if DistrType == 'sym':
 		gamma = 1.
 		weights = np.ones(len(stimulus_set))
 
-	elif distribtype == 'pos_skewed':	
+	elif DistrType == 'PosSkewed':	
 		lam = -np.log(5.)/(len(stimulus_set)//2 - 1)
 		weights = np.exp(lam * np.arange(len(stimulus_set)//2))
 		weights = np.hstack(2*[weights])
 		pi = set_pi( stimulus_set, weights )
 		gamma=np.exp(lam)
 
-	elif distribtype == 'neg_skewed':
+	elif DistrType == 'NegSkewed':
 		lam = np.log(5.)/(len(stimulus_set)//2 - 1)
 		weights = np.exp(lam * np.arange(len(stimulus_set)//2))
 		weights = np.hstack(2*[weights])
 		pi = set_pi( stimulus_set, weights )
 		gamma=np.exp(lam)
 
-	elif distribtype == 'bimodal':
-		lam = 1; weights = np.exp(lam * np.arange(len(stimulus_set)//2))
+	elif DistrType == 'Bimodal':
+		lam = 2; weights = np.exp(lam * np.arange(len(stimulus_set)//2))
 		weights = np.hstack(2*[weights + weights[::-1]])
 		pi = set_pi( stimulus_set, weights )
 		gamma=np.exp(lam)
 	
 	else:
-		raise ValueError (f'\"{distribtype}\" not recognized! Please try again.')
+		raise ValueError (f'\"{DistrType}\" not recognized! Please try again.')
 
 	weights = np.ravel(weights)
 
