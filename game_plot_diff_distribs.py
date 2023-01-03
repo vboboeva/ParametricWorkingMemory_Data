@@ -156,7 +156,13 @@ if __name__ == "__main__":
 		pi = set_pi( stimulus_set, weights )
 		gamma=np.exp(lam)
 
-	elif DistrType == 'Bimodal':
+	elif DistrType == 'Bimodal_l1':
+		lam = 1; weights = np.exp(lam * np.arange(len(stimulus_set)//2))
+		weights = np.hstack(2*[weights + weights[::-1]])
+		pi = set_pi( stimulus_set, weights )
+		gamma=np.exp(lam)
+
+	elif DistrType == 'Bimodal_l2':
 		lam = 2; weights = np.exp(lam * np.arange(len(stimulus_set)//2))
 		weights = np.hstack(2*[weights + weights[::-1]])
 		pi = set_pi( stimulus_set, weights )

@@ -60,8 +60,8 @@ if __name__ == "__main__":
 			game = Game(stimulus_set, weights=weights, model="eps_delta")
 			# game = Game(stimulus_set, pi=pi, model="full")
 			gameB = Game_Bayes(stimulus_set, pi=pi)
-		elif DistrType == 'Bimodal':
-			lam = 2.
+		elif DistrType == 'Bimodal_l1':
+			lam = 1.
 			weights0 = np.exp(lam * np.arange(len(stimulus_set)//2))
 			weights = np.hstack(2*[weights0 + weights0[::-1]])
 			pi = set_pi( stimulus_set, weights )
@@ -70,6 +70,15 @@ if __name__ == "__main__":
 			# game = Game(stimulus_set, pi=pi, model="full")
 			gameB = Game_Bayes(stimulus_set, pi=pi, sigma=None)
 
+		elif DistrType == 'Bimodal_l2':
+			lam = 2.
+			weights0 = np.exp(lam * np.arange(len(stimulus_set)//2))
+			weights = np.hstack(2*[weights0 + weights0[::-1]])
+			pi = set_pi( stimulus_set, weights )
+			# game = Game(stimulus_set, pi=None, model="eps")
+			game = Game(stimulus_set, weights=weights, model="eps_delta")
+			# game = Game(stimulus_set, pi=pi, model="full")
+			gameB = Game_Bayes(stimulus_set, pi=pi, sigma=None)
 
 	# PLOT DATA
 	if SubjectName=='AllSubjects' and DistrType != 'Uniform':
@@ -92,7 +101,7 @@ if __name__ == "__main__":
 	yf=performvals_fit
 	print('MSE=', mean_squared_error(yd,yf))
 	np.savetxt("data_processed/Performance_StatFit_%s_%s.txt"%(SubjectName, DistrType), [xf, yf], fmt='%.3f')
-	np.savetxt("data_processed/MSE_statmodel_%s_%s.txt"%(SubjectName, DistrType), [mean_squared_error(yd,yf)])
+	np.savetxt("data_processed/MSE_StatFit_%s_%s.txt"%(SubjectName, DistrType), [mean_squared_error(yd,yf)])
 
 
 	print('fit Bayes')
@@ -102,4 +111,4 @@ if __name__ == "__main__":
 	yf=performvals_fit
 	print('MSE=', mean_squared_error(yd,yf))
 	np.savetxt("data_processed/Performance_BayesFit_%s_%s.txt"%(SubjectName, DistrType), [xf, yf], fmt='%.3f')
-	np.savetxt("data_processed/MSE_bayesmodel_%s_%s.txt"%(SubjectName, DistrType), [mean_squared_error(yd,yf)])
+	np.savetxt("data_processed/MSE_BayesFit_%s_%s.txt"%(SubjectName, DistrType), [mean_squared_error(yd,yf)])
