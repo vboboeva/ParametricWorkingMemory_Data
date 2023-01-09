@@ -20,6 +20,7 @@ if __name__ == "__main__":
 	SubjectName=str(sys.argv[1])
 	DistrType=str(sys.argv[2])
 	species=str(sys.argv[3])
+	loss=str(sys.argv[4])
 
 	print(SubjectName)
 
@@ -35,63 +36,57 @@ if __name__ == "__main__":
 		values = (bins[1:] + bins[:-1])/2
 		probas = counts/np.sum(counts)
 		pi = np.array([values, probas])
-		game = Game(stimulus_set, pi=pi, model="eps") 
+		game = Game(stimulus_set, pi=pi, model="eps", loss=loss) 
 		# game = Game(stimulus_set, pi=pi, model="eps_delta")
 		SubjectName=species
 
 	elif species == "Rat": 
 		# game = Game(stimulus_set, pi=None, model="eps")
-		game = Game(stimulus_set, weights=None, pi=None, model="eps_delta")
+		game = Game(stimulus_set, weights=None, pi=None, model="eps_delta", loss=loss)
 		# game = Game(stimulus_set, pi=None, model="full")
 		SubjectName=species
 
 	elif species == "Human":
 		if DistrType == "Uniform": 
-			# game = Game(stimulus_set, pi=None, model="eps")
-			game = Game(stimulus_set, pi=None, model="eps_delta")
-			gameB = Game_Bayes(stimulus_set, pi=None)
-			# game = Game(stimulus_set, pi=None, model="full")
+			# game = Game(stimulus_set, pi=None, model="eps", loss=loss)
+			game = Game(stimulus_set, pi=None, model="eps_delta", loss=loss)
+			gameB = Game_Bayes(stimulus_set, pi=None, loss=loss)
+			# game = Game(stimulus_set, pi=None, model="full", loss=loss)
 		elif DistrType == 'NegSkewed':
 			lam = np.log(5.)/(len(stimulus_set)//2 - 1)
 			weights0 = np.exp(lam * np.arange(len(stimulus_set)//2))
 			weights = np.hstack(2*[weights0])
 			pi = set_pi( stimulus_set, weights )
-			# game = Game(stimulus_set, pi=None, model="eps")
-			game = Game(stimulus_set, weights=weights, model="eps_delta")
-			# game = Game(stimulus_set, pi=pi, model="full")
-			gameB = Game_Bayes(stimulus_set, pi=pi)
+			game = Game(stimulus_set, weights=weights, model="eps", loss=loss)
+			# game = Game(stimulus_set, weights=weights, model="eps_delta", loss=loss)
+			# game = Game(stimulus_set, pi=pi, model="full", loss=loss)
+			gameB = Game_Bayes(stimulus_set, pi=pi, loss=loss)
 		elif DistrType == 'Bimodal_l1':
 			lam = 1.
 			weights0 = np.exp(lam * np.arange(len(stimulus_set)//2))
 			weights = np.hstack(2*[weights0 + weights0[::-1]])
 			pi = set_pi( stimulus_set, weights )
-			# game = Game(stimulus_set, pi=None, model="eps")
-			game = Game(stimulus_set, weights=weights, model="eps_delta")
-			# game = Game(stimulus_set, pi=pi, model="full")
-			gameB = Game_Bayes(stimulus_set, pi=pi, sigma=None)
+			game = Game(stimulus_set, weights=weights, model="eps", loss=loss)
+			# game = Game(stimulus_set, weights=weights, model="eps_delta", loss=loss)
+			# game = Game(stimulus_set, pi=pi, model="full", loss=loss)
+			gameB = Game_Bayes(stimulus_set, pi=pi, sigma=None, loss=loss)
 
 		elif DistrType == 'Bimodal_l2':
 			lam = 2.
 			weights0 = np.exp(lam * np.arange(len(stimulus_set)//2))
 			weights = np.hstack(2*[weights0 + weights0[::-1]])
 			pi = set_pi( stimulus_set, weights )
-			# game = Game(stimulus_set, pi=None, model="eps")
-			game = Game(stimulus_set, weights=weights, model="eps_delta")
-			# game = Game(stimulus_set, pi=pi, model="full")
-			gameB = Game_Bayes(stimulus_set, pi=pi, sigma=None)
+			game = Game(stimulus_set, weights=weights, model="eps", loss=loss)
+			# game = Game(stimulus_set, weights=weights, model="eps_delta", loss=loss)
+			# game = Game(stimulus_set, pi=pi, model="full", loss=loss)
+			gameB = Game_Bayes(stimulus_set, pi=pi, sigma=None, loss=loss)
 
-	# PLOT DATA
+	xd=stimulus_set[:,0]
 	if SubjectName=='AllSubjects' and DistrType != 'Uniform':
-		xd=stimulus_set[:,0]
-		# print(performvals)
 		yd=np.mean(performvals, axis=0)
-		ysd=np.std(performvals, axis=0)
 	else:
-		xd=stimulus_set[:,0]
 		yd=performvals
-		ysd=np.zeros(len(yd))
 
-	np.savetxt("data_processed/Performance1_%s_%s.txt"%(SubjectName, DistrType), [xd, yd, ysd], fmt='%.3f')
 	np.savetxt("data_processed/Pi_%s.txt"%(DistrType), pi, fmt='%.3f')
 
 	print('fit stat model')
@@ -100,8 +95,8 @@ if __name__ == "__main__":
 	xf=stimulus_set[:,0]
 	yf=performvals_fit
 	print('MSE=', mean_squared_error(yd,yf))
-	np.savetxt("data_processed/Performance_StatFit_%s_%s.txt"%(SubjectName, DistrType), [xf, yf], fmt='%.3f')
-	np.savetxt("data_processed/MSE_StatFit_%s_%s.txt"%(SubjectName, DistrType), [mean_squared_error(yd,yf)])
+	np.savetxt("data_processed/Performance_StatFit_%s_%s_%s.txt"%(SubjectName, DistrType, loss), [xf, yf], fmt='%.3f')
+	np.savetxt("data_processed/MSE_StatFit_%s_%s_%s.txt"%(SubjectName, DistrType, loss), [mean_squared_error(yd,yf)])
 
 
 	print('fit Bayes')
@@ -110,5 +105,5 @@ if __name__ == "__main__":
 	xf=stimulus_set[:,0]
 	yf=performvals_fit
 	print('MSE=', mean_squared_error(yd,yf))
-	np.savetxt("data_processed/Performance_BayesFit_%s_%s.txt"%(SubjectName, DistrType), [xf, yf], fmt='%.3f')
-	np.savetxt("data_processed/MSE_BayesFit_%s_%s.txt"%(SubjectName, DistrType), [mean_squared_error(yd,yf)])
+	np.savetxt("data_processed/Performance_BayesFit_%s_%s_%s.txt"%(SubjectName, DistrType, loss), [xf, yf], fmt='%.3f')
+	np.savetxt("data_processed/MSE_BayesFit_%s_%s_%s.txt"%(SubjectName, DistrType, loss), [mean_squared_error(yd,yf)])

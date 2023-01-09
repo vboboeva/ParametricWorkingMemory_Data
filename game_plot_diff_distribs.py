@@ -7,7 +7,7 @@ from helper_percentile_discrete import percentile_discrete
 from helper_set_pi import set_pi
 import sys
 
-def plot_scatter(stimulus_set, scattervals, performvals, eps, gamma, num_stimpairs,condition):
+def plot_scatter(stimulus_set, scattervals, performvals, param, num_stimpairs, condition, DistrType):
 
 	fig, axs = plt.subplots(1,1,figsize=(1.75,1.5))
 	scat=axs.scatter(stimulus_set[:num_stimpairs,0],stimulus_set[:num_stimpairs,1], marker='s', s=30, c=scattervals[:num_stimpairs], cmap=plt.cm.coolwarm, vmin=0, vmax=1)
@@ -27,13 +27,13 @@ def plot_scatter(stimulus_set, scattervals, performvals, eps, gamma, num_stimpai
 	axs.spines['right'].set_visible(False)
 	axs.spines['top'].set_visible(False)
 	
-	fig.savefig("figs/scatter_s1_s2_eps%.2f_gamma%.2f_%s.png"%(eps,gamma,condition), bbox_inches='tight')
-	fig.savefig("figs/scatter_s1_s2_eps%.2f_gamma%.2f_%s.svg"%(eps,gamma,condition), bbox_inches='tight')
+	fig.savefig("figs/scatter_s1_s2_param%.2f_%s_%s.png"%(param, condition, DistrType), bbox_inches='tight')
+	fig.savefig("figs/scatter_s1_s2_param%.2f_%s_%s.svg"%(param, condition, DistrType), bbox_inches='tight')
 
-def plot_gamefit_and_distribution(xd,yd,xf,yf,pi,eps,gamma):
+def plot_gamefit_and_distribution(xd,yd,xf,yf,pi,eps,DistrType):
 	fig, ax = plt.subplots(1,1,figsize=(1.5,1.5))#, num=1, clear=True)
 	
-	ax.set_ylim([0.4,1.])
+	ax.set_ylim([0.,1.])
 	# ax.set_xlim([0.15,0.85])
 
 	ax.scatter(xd[:len(xd)//2], yd[:len(xd)//2], color='crimson', marker='.', label="$s_a > s_b$")
@@ -65,14 +65,14 @@ def plot_gamefit_and_distribution(xd,yd,xf,yf,pi,eps,gamma):
 	ax2.set_yticklabels([0,0.25,0.5])
 	ax2.set_ylabel("Probability $p_m$")
 	
-	fig.savefig("figs/performance_fs1_stimdistrib_eps%.2f_gamma%.2f.png"%(eps,gamma), bbox_inches='tight')
-	fig.savefig("figs/performance_fs1_stimdistrib_eos%.2f_gamma%.2f.svg"%(eps,gamma), bbox_inches='tight')
+	fig.savefig("figs/performance_fs1_stimdistrib_eps%.2f_%s.png"%(eps,DistrType), bbox_inches='tight')
+	fig.savefig("figs/performance_fs1_stimdistrib_eps%.2f_%s.svg"%(eps,DistrType), bbox_inches='tight')
 	plt.close(fig)
 
-def plot_gamefit_bayesfit_and_distribution(sigma,xd,yd,xf,yf,pi,eps,gamma,xb,yb):
+def plot_gamefit_bayesfit_and_distribution(sigma,xd,yd,xf,yf,pi,eps,DistrType,xb,yb):
 	fig, ax = plt.subplots(1,1,figsize=(1.5,1.5))#, num=1, clear=True)
 	
-	ax.set_ylim([0.4,1.])
+	ax.set_ylim([0.0,1.])
 	# ax.set_xlim([0.15,0.85])
 
 	ax.scatter(xd[:len(xd)//2], yd[:len(xd)//2], color='royalblue', marker='.', label="$s_a > s_b$")
@@ -109,8 +109,8 @@ def plot_gamefit_bayesfit_and_distribution(sigma,xd,yd,xf,yf,pi,eps,gamma,xb,yb)
 
 	ax.spines['right'].set_visible(False)
 	ax.spines['top'].set_visible(False)
-	fig.savefig("figs/performance_fs1_stimdistrib_eps%.2f_gamma%.2f_sigma%.4f.png"%(eps,gamma,sigma), bbox_inches='tight')
-	fig.savefig("figs/performance_fs1_stimdistrib_eps%.2f_gamma%.2f_sigma%.4f.svg"%(eps,gamma,sigma), bbox_inches='tight')
+	fig.savefig("figs/performance_fs1_stimdistrib_eps%.2f_%s_sigma%.4f.png"%(eps,DistrType,sigma), bbox_inches='tight')
+	fig.savefig("figs/performance_fs1_stimdistrib_eps%.2f_%s_sigma%.4f.svg"%(eps,DistrType,sigma), bbox_inches='tight')
 
 def plot_post_proba_bayes(s_vals, p_label):
 	fig, ax = plt.subplots()
@@ -138,9 +138,10 @@ if __name__ == "__main__":
 	# run the simulation with these parameters
 	# weights = np.ones(len(stimulus_set)).reshape((2,-1))
 
-	if DistrType == 'sym':
+	if DistrType == 'Sym':
 		gamma = 1.
 		weights = np.ones(len(stimulus_set))
+		pi = set_pi( stimulus_set, weights )
 
 	elif DistrType == 'PosSkewed':	
 		lam = -np.log(5.)/(len(stimulus_set)//2 - 1)
@@ -184,7 +185,7 @@ if __name__ == "__main__":
 
 	# Plot
 	performvals, scattervals = scatter(stimulus_set, stimuli, readout, labels) 
-	plot_scatter(stimulus_set, scattervals, performvals, eps, gamma, num_stimpairs, 'game')
+	plot_scatter(stimulus_set, scattervals, performvals, eps, num_stimpairs, 'game', DistrType)
 
 	# PLOT the simulation and the analytical with the error rate entered above
 	performvals_analytic = 1. - eps * game.prob_error
@@ -197,6 +198,8 @@ if __name__ == "__main__":
 	print(performvals_bayes)
 
 	# plot everything
-	plot_gamefit_bayesfit_and_distribution(best_sigma, stimulus_set[:,0], performvals, stimulus_set[:,0], performvals_analytic, pi[1,:], eps, gamma, stimulus_set[:,0], performvals_bayes)
-
-	# plot_scatter(stimulus_set, scattervals_bayes, performvals_bayes, sigma, gamma, num_stimpairs, 'bayes')
+	plot_gamefit_bayesfit_and_distribution(best_sigma, stimulus_set[:,0], performvals, stimulus_set[:,0], performvals_analytic, pi[1,:], eps, DistrType, stimulus_set[:,0], performvals_bayes)
+	scattervals_bayes=np.empty(num_stimpairs)
+	scattervals_bayes[:int(num_stimpairs/2)] = 1.-performvals_bayes[:int(num_stimpairs/2)]
+	scattervals_bayes[int(num_stimpairs/2):] = performvals_bayes[int(num_stimpairs/2):]
+	plot_scatter(stimulus_set, scattervals_bayes, performvals_bayes, best_sigma, num_stimpairs, 'bayes', DistrType)

@@ -19,7 +19,7 @@ from matplotlib import cm, use
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 from matplotlib import rc
 from pylab import rcParams
-from scipy.optimize import minimize
+from scipy.optimize import minimize, LinearConstraint
 from scipy import stats
 
 # the axes attributes need to be set before the call to subplot
@@ -97,7 +97,7 @@ def scatter(stimulus_set,stimuli,readout,labels):
 
 class Game (object):
     def __init__ (self, stimulus_set,
-                    weights=None, pi=None, pi_extra=None, model="eps"):
+                    weights=None, pi=None, pi_extra=None, model="eps", loss="MSE"):
         '''
         stimulus_set: (2,N_pairs) array
             values of the stimuli in stimulus pairs
@@ -177,6 +177,16 @@ class Game (object):
         self.pi_extra = pi_extra
         self.gamma = 1
         self.delta = 0
+
+        _avail_loss = ["MSE", "CE"]
+        
+        # define loss function
+        self.loss_dict={"MSE": self.__loss_function_MSE, "CE": self.__loss_function_CE}
+        if loss not in _avail_loss:
+            print(f"Unavailable loss function '{loss}': fall back to MSE loss")
+            loss = "MSE"
+        self.loss_function=self.loss_dict[loss]
+
 
     def set_pi(self, pi):
         
@@ -313,37 +323,54 @@ class Game (object):
         return 1. - self.eps * self.prob_error - self.delta
 
     def __performances_mid (self, eps, delta):
-        self.gamma = 1
+        self.gamma = 1.
         self.delta = delta
         self.eps = eps
         return 1. - self.eps * self.prob_error - self.delta
 
     def __performances_simple (self, eps):
-        self.gamma = 1
+        self.gamma = 1.
         self.delta = 0
         self.eps = eps
         return 1. - self.eps * self.prob_error
 
+    def __loss_function_MSE (self, performvals, *pars):
+        error = self.performances(*pars) - performvals
+        return np.sum(error**2)
+
+    def __loss_function_CE (self, performvals, *pars):
+        t=performvals
+        p=self.performances(*pars)
+        e = - t*np.log(p) - (1.-t)*np.log(1.-p)
+        return np.sum(e[e != np.inf])
+
     def fit (self, performvals):
 
         def distance (pars):
-            relative_error = self.performances(*pars) - performvals
-            # relative_error /= performvals 
-            return np.sum(relative_error*relative_error)
+            return self.loss_function(performvals, *pars)
 
-        opt_options = {}
+        if self.model == 'eps':
+            bnds=[(0,1)]
+            cons = None
 
+        if self.model == 'eps_delta':
+            A=np.array([[1,1],[1,0],[0,1]])
+            bnds=None
+            upbnd=np.array([1,1,1])
+            cons = [{"type": "ineq", "fun": lambda x: upbnd - A @ x}]
+
+        opt_options = dict(constraints=cons)
         if self.model == "full":
-            opt = minimize(distance, np.array([0.0,0.,1.]), **opt_options)
+            opt = minimize(distance, np.array([0.5,0.5,0.5]), bounds=bnds, **opt_options)
             print("optimal error probability eps = %.3f"%(opt['x'][0],))
             print("optimal lapse parameter delta = %.3f"%(opt['x'][1],))
             print("optimal exponential factor gamma = %.3f"%(opt['x'][2],))
         elif self.model == "eps_delta":
-            opt = minimize(distance, np.array([0.,0.]), **opt_options)
+            opt = minimize(distance, np.array([0.25,0.]), bounds=bnds, **opt_options)
             print("optimal error probability eps = %.3f"%(opt['x'][0],))
             print("optimal lapse parameter delta = %.3f"%(opt['x'][1],))
         elif self.model == "eps":
-            opt = minimize(distance, np.array([0.]), **opt_options)
+            opt = minimize(distance, np.array([0.25]), bounds=bnds, **opt_options)
             print("optimal error probability eps = %.3f"%(opt['x'][0],))
         else:
             raise ValueError("Something terribly terribly wrong happened...")
@@ -365,13 +392,23 @@ class Game (object):
         fig.savefig(filename,bbox_inches='tight')
 
 class Game_Bayes (object): #Game
-    def __init__ (self, stimulus_set, pi, **kwargs):
+    def __init__ (self, stimulus_set, pi, sigma=None, loss='MSE'):
         # super().__init__(stimulus_set, **kwargs)
         # width of the likelihood (for the first stimulus)
         self.stimulus_set=stimulus_set
         self.pi=pi
         self.stimuli_vals=np.unique(self.stimulus_set)
         # self._set_posterior()
+        _avail_loss = ["MSE", "CE"]
+        
+        # define loss function
+        self.loss_dict={"MSE": self.__loss_function_MSE, "CE": self.__loss_function_CE}
+        if loss not in _avail_loss:
+            print(f"Unavailable loss function '{loss}': fall back to MSE loss")
+            loss = "MSE"
+        self.loss_function = self.loss_dict[loss]
+        self.loss=loss
+
 
     def _likelihood (self, R, S, sigma):
         _num = np.exp(-(R - S)**2/(2.*sigma**2))
@@ -383,8 +420,8 @@ class Game_Bayes (object): #Game
         # print("Evaluating performances: sigma = ", sigma)
 
         r_vals = np.linspace(
-                        np.min(self.stimulus_set)-5.*sigma,
-                        np.max(self.stimulus_set)+5.*sigma,
+                        np.min(self.stimulus_set)-10.*sigma,
+                        np.max(self.stimulus_set)+10.*sigma,
                         10000)
 
         dr = r_vals[1] - r_vals[0]
@@ -416,12 +453,18 @@ class Game_Bayes (object): #Game
             i = s_vals.index(s1)
             j = s_vals.index(s2)
             performvals_bayes[k] = p_label[i,j] if s1 > s2 else 1. - p_label[i,j]
-
+        # print(performvals_bayes)
         return performvals_bayes
 
-    def loss_function (self, performvals, sigma):
+    def __loss_function_MSE (self, performvals, sigma):
         error = self.performances_bayes(sigma) - performvals
         return np.sum(error**2)
+
+    def __loss_function_CE (self, performvals, sigma):
+        t=performvals
+        p=self.performances_bayes(sigma)
+        e = - t*np.log(p) - (1.-t)*np.log(1.-p)
+        return np.sum(e[e != np.inf])
 
     def fit (self, performvals):
         # simple search for minimum
@@ -431,9 +474,19 @@ class Game_Bayes (object): #Game
         best_loss = np.inf
         for sigma in sigmas:
             loss = self.loss_function(performvals, sigma)
+            # print(loss)
             losses.append(loss)
             if loss < best_loss:
                 best_loss = loss
                 best_sigma = sigma
         print("optimal likelihood width sigma = %.3f"%best_sigma)
         return np.array([best_sigma])
+        
+        # def distance (sigma):
+        #     return self.loss_function(performvals, sigma)
+        # cons=None
+        # opt_options = dict(constraints=cons)
+        # opt = minimize(distance, x0=np.array([0.3]), bounds=[(0.2,0.6)], **opt_options, method='TNC')
+        # print("optimal likelihood width sigma = %.3f"%opt['x'])
+
+        # return(opt['x'])
