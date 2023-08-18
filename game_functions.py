@@ -53,48 +53,6 @@ def percentile_discrete(f, vals, probs):
             break
     return v    
 
-def history(stimulus_set, stimuli, readout, num_stimpairs):
-    trialtypevals=np.zeros((len(stimulus_set), len(stimulus_set)))
-    responsevals=np.zeros((len(stimulus_set), len(stimulus_set)))
-
-    # SORT performance by previous pair of stimuli
-    for idx in range(len(stimuli)):
-        for m in range(len(stimulus_set)):
-            if ( stimuli[idx]==stimulus_set[m] ).all():
-                for n in range(len(stimulus_set)):
-                    if ( stimuli[idx-1]==stimulus_set[n] ).all():
-                        trialtypevals[n,m] += 1
-                        responsevals[n,m] += readout[idx]
-
-    A1=responsevals[0:int(num_stimpairs/2),:num_stimpairs]/trialtypevals[0:int(num_stimpairs/2),:num_stimpairs]
-    B1=np.zeros((int(num_stimpairs/2),num_stimpairs))
-    for i in range(num_stimpairs):
-        B1[:,i] = (A1[:,i] - np.mean(A1[:,i]))
-
-    A2=responsevals[int(num_stimpairs/2):num_stimpairs,:num_stimpairs]/trialtypevals[int(num_stimpairs/2):num_stimpairs,:num_stimpairs]
-    B2=np.zeros((int(num_stimpairs/2),num_stimpairs))
-    for i in range(num_stimpairs):
-        B2[:,i] = (A2[:,i] - np.mean(A2[:,i]))
-
-    B=np.hstack((B1,B2))
-    H=np.divide(responsevals, trialtypevals, out=np.zeros_like(responsevals), where=trialtypevals!=0)
-    return B, H
-
-def scatter(stimulus_set,stimuli,readout,labels):
-    # SORT performance by pair of stimuli (for performance by stimulus type)
-    performvals=np.zeros(len(stimulus_set))
-    scattervals=np.zeros(len(stimulus_set))
-
-    for m in range(len(stimulus_set)):
-        
-        l=stimulus_set[m]
-        indices=np.where(np.all(stimuli==l, axis=1))[0]
-        if (len(indices) != 0):
-            performvals[m]=len(np.where(readout[indices] == labels[indices])[0])/len(labels[indices])
-            scattervals[m]=np.nanmean(readout[indices])
-    return performvals, scattervals
-
-
 class Game (object):
     def __init__ (self, stimulus_set,
                     weights=None, pi=None, pi_extra=None, model="eps", loss="MSE"):
@@ -187,6 +145,8 @@ class Game (object):
             loss = "MSE"
         self.loss_function=self.loss_dict[loss]
 
+    def get_pi(self):
+        return np.array([self.stimuli_vals, self.pi])
 
     def set_pi(self, pi):
         
@@ -311,8 +271,8 @@ class Game (object):
             
             readout[trial] = get_label(sa, sb)
 
-        np.save("history_stimuli.npy", stimuli)
-        np.save("history_readout.npy", readout)
+        np.save("data_processed/history_stimuli.npy", stimuli)
+        np.save("data_processed/history_readout.npy", readout)
 
         return stimuli, readout, labels
 
