@@ -10,7 +10,7 @@ import sys
 import os
 
 
-def make(whichdelay, whichITI, delay, ITIs):
+def make(whichdelay, whichITI, delay, ITIs): #, hit
 
 	# define a mask for the delay criterion
 	if whichdelay == 'all':
@@ -21,9 +21,12 @@ def make(whichdelay, whichITI, delay, ITIs):
 	# take only trials where ITI is less than a cutoff 
 	# (subject taking break, or data collected in multiple parts)
 	
-	mask_exclude_ITI = ( ITIs <= 20. )
+	mask_include_ITI = ( ITIs <= 20. )
 
-	# define a mask for the ITI criterion
+	# take only hit trials 
+	# mask_include_hit = (hit == 1)
+
+	# take specific ITIs
 	if whichITI == 'all':
 		mask_ITI = np.ones(len(ITIs), dtype=bool)
 
@@ -31,16 +34,11 @@ def make(whichdelay, whichITI, delay, ITIs):
 		threshold_low = 3.#np.percentile(ITIs, 33)
 		mask_ITI = ITIs < threshold_low
 
-	# elif whichITI == 'mid':
-	# 	threshold_low = np.percentile(ITIs, 33)
-	# 	threshold_high = np.percentile(ITIs, 66)
-	# 	mask_ITI = (ITIs >= threshold_low) & (ITIs < threshold_high)
-
 	elif whichITI == 'high':
 		threshold_high = 3.#np.percentile(ITIs, 66)
 		mask_ITI = (ITIs >= threshold_high)
-	# print(mask_ITI)
+
 	# get the indices of the combined masks
-	ids = np.where( mask_delay & mask_exclude_ITI & mask_ITI )[0]
+	ids = np.where( mask_delay & mask_include_ITI & mask_ITI )[0] #& mask_include_hit
 	
 	return ids

@@ -45,12 +45,17 @@ def make_data(SubjectName, DistrType):
 		filecounter+=1
 
 	stimuli = stimuli.T
-	# transform timestamp (unit is 24hrs) into seconds 	
+
+	# calculate ITIs
+	# transform timestamp (unit is 24hrs) into seconds
+	# this only works if the experiment is not done 
+	# at midnight
+
 	timestamp_in_sec=timestamp*24*60*60
 	tot_trial_dur = timestamp_in_sec[1:]-timestamp_in_sec[0:-1]
 	ITIs = tot_trial_dur - trialtime[:-1]
 
-	# calculate ITIs, but first make sure there are no negative ITI
+	# but first make sure there are no negative ITI
 	indexneg = np.where(ITIs < 0)
 	if indexneg != np.array([]):
 		print('Negative inter-trial interval! Check data')
@@ -74,6 +79,7 @@ def make_data(SubjectName, DistrType):
 
 	### Re-order stimulus set in same way as model, so that the same analysis codes can be used
 	## reorder those above the diagonal (first half of array)
+	
 	order=np.argsort(stimulus_set_bis[:int(len(stimulus_set)/2),0])
 	stimulus_set_bis[:int(len(stimulus_set)/2),:]= stimulus_set_bis[order,:]
 

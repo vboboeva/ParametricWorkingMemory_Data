@@ -21,8 +21,8 @@ rcParams['text.latex.preamble'] = r'\usepackage{sfmath}' # \boldmath
 fig, ax=plt.subplots(1,2,figsize=(3,1.5))
 
 whichsubject=str(sys.argv[1])
-whichdelay='all'
-whichITI='all'
+whichdelay=str(sys.argv[2])
+whichITI=str(sys.argv[3])
 
 whichdistribs=['NegSkewed', 'Bimodal_l2']
 

@@ -6,13 +6,13 @@ import sys
 ''' PRODUCES FIGURES IN THE MANUSCRIPT BOBOEVA ET AL 2023 PUBLISHED IN ELIFE'''
 
 # ''' COMPUTE PERFORMANCE OF ALL/INDIVIDUAL SUBJECTS AND PLOTTING FRACTION CLASSIFIED '''
-# ''' PRODUCES FIG 6A and 7H '''
+# ''' PRODUCES FIG 7A and FIG 8H '''
 
-whichsubject='AllSubjects' # choose btw 'AllSubjects' and those in Subjects_list.txt for relevant distribution 
-whichdistrib='NegSkewed' # choose btw Bimodal_l1, Bimodal_l2, NegSkewed, or All
-whichspecies='Human'
-whichdelay='6' # choose btw 2,4,6, all
-whichITI='all'# choose btw low, high, all
+# whichsubject='AllSubjects' # choose btw 'AllSubjects' and those in Subjects_list.txt for relevant distribution 
+# whichdistrib='NegSkewed' # choose btw Bimodal_l1, Bimodal_l2, NegSkewed, or All
+# whichspecies='Human'
+# whichdelay='6' # choose btw 2,4,6, all
+# whichITI='all'# choose btw low, high, all
 
 # if whichsubject == 'AllSubjects':
 # 	Names=np.loadtxt('data_processed/Subjects_%s.txt'%whichdistrib, dtype=str)
@@ -24,9 +24,9 @@ whichITI='all'# choose btw low, high, all
 # elif whichsubject != 'AllSubjects':
 # 	os.system('python compute_performance.py %s %s %s %s %s'%(whichsubject, whichdistrib, whichspecies, whichdelay, whichITI))
 
-os.system('python plot_frac_class.py %s %s %s %s %s'%(whichsubject, whichdistrib, whichspecies, whichdelay, whichITI))
+# os.system('python plot_frac_class.py %s %s %s %s %s'%(whichsubject, whichdistrib, whichspecies, whichdelay, whichITI))
 
-# ''' PRODUCES FIG 6B '''
+# ''' PRODUCES FIG 7B '''
 
 # whichsubject='AllSubjects' # choose btw 'AllSubjects' and those in Subjects_list.txt for relevant distribution 
 # whichdistrib='Bimodal_l2' # choose btw Bimodal_l1, Bimodal_l2, NegSkewed, or All
@@ -46,7 +46,7 @@ os.system('python plot_frac_class.py %s %s %s %s %s'%(whichsubject, whichdistrib
 
 # os.system('python cbias_bar_fTISI_bothdistribs.py %s %s'%(whichsubject, whichspecies))
 
-# ''' PRODUCES FIG 7I '''
+# ''' PRODUCES plot with contraction bias for different ITIs '''
 
 # whichsubject='AllSubjects' # choose btw 'AllSubjects' and those in Subjects_list.txt for relevant distribution 
 # whichdistrib='All' # choose btw Bimodal_l1, Bimodal_l2, NegSkewed, or All
@@ -67,7 +67,7 @@ os.system('python plot_frac_class.py %s %s %s %s %s'%(whichsubject, whichdistrib
 # os.system('python cbias_bar_fTITI_bothdistribs.py %s %s'%(whichsubject, whichspecies))
 
 # ''' COMPUTING AND PLOTTING THE HISTORY MATRIX/BIAS FOR AS MANY TRIALS BACK AS REQUIRED ''' 
-# ''' PRODUCES FIG 6C ''' 
+# ''' PRODUCES FIG 7C ''' 
 
 # whichsubject='AllSubjects' # choose btw 'AllSubjects' and those in Subjects_list.txt for relevant distribution 
 # whichdistrib='All' # choose btw Bimodal_l1, Bimodal_l2, NegSkewed, or All
@@ -79,7 +79,7 @@ os.system('python plot_frac_class.py %s %s %s %s %s'%(whichsubject, whichdistrib
 # os.system('python plot_history_matrix.py %s %s %s %s %s %s'%( whichsubject, whichdistrib, whichspecies, whichdelay, whichITI, trialsback))
 
 # ''' PLOTTING THE BIAS FOR AS MANY TRIALS BACK AS REQUIRED ''' 
-# ''' PLOTS FIG 6D ''' 
+# ''' PLOTS FIG 7D ''' 
 
 # whichsubject='AllSubjects' # choose btw 'AllSubjects' and those in Subjects_list.txt for relevant distribution 
 # whichdistrib='All' # choose btw Bimodal_l1, Bimodal_l2, NegSkewed, or All
@@ -93,7 +93,7 @@ os.system('python plot_frac_class.py %s %s %s %s %s'%(whichsubject, whichdistrib
 # os.system('python plot_bias_ISI.py %s %s %s %s %s'%(whichsubject, whichdistrib, whichspecies, whichITI, trialsbacks))
 
 
-# ''' PLOTS FIG 7J ''' 
+# ''' PLOTS FIG 8J ''' 
 
 # whichsubject='AllSubjects' # choose btw 'AllSubjects' and those in Subjects_list.txt for relevant distribution 
 # whichdistrib='All' # choose btw Bimodal_l1, Bimodal_l2, NegSkewed, or All
@@ -101,13 +101,14 @@ os.system('python plot_frac_class.py %s %s %s %s %s'%(whichsubject, whichdistrib
 # whichdelay='all' # choose btw 2,4,6, all
 
 # for whichITI in ['low','high','all']:
-# 	for trialsback in np.arange(8,12):
+# 	for trialsback in np.arange(1,10):
 # 		os.system('python compute_history_matrix.py %s %s %s %s %s %s'%( whichsubject, whichdistrib, whichspecies, whichdelay, whichITI, trialsback))
-# trialsbacks=4
+
+# trialsbacks=3
 # os.system('python plot_bias_ITI.py %s %s %s %s %s'%(whichsubject, whichdistrib, whichspecies, whichdelay, trialsbacks))
 
 # ''' FITTING PERFORMANCE OF INDIVIDUAL AND/OR ALL SUBJECTS FOR DIFFERENT DISTRIBUTIONS '''
-# ''' PRODUCES FIG 5C & 4D-G ''' 
+# ''' PRODUCES FIG 6C & 5D-G ''' 
 
 # whichsubject='AllSubjects' # choose btw 'AllSubjects' and those in Subjects_list.txt for relevant distribution 
 # whichdistrib='Bimodal_l2' # choose btw Bimodal_l1, Bimodal_l2, NegSkewed, or All
@@ -126,7 +127,7 @@ os.system('python plot_frac_class.py %s %s %s %s %s'%(whichsubject, whichdistrib
 # os.system('python plot_game_fit.py %s %s %s %s %s %s'%(whichsubject, whichdistrib, whichspecies, whichloss, whichdelay, whichITI))
 
 # ''' COMPUTING AND PLOTTING MODEL PREDICTIONS FOR DIFFERENT DISTRIBUTIONS '''
-# ''' PRODUCES FIG 5A and FIG S4''' 
+# ''' PRODUCES FIG 6A and FIG S4''' 
 
 # whichdistrib='NegSkewed' # choose btw Bimodal_l1, Bimodal_l2, NegSkewed
 # eps=0.5
@@ -134,7 +135,7 @@ os.system('python plot_frac_class.py %s %s %s %s %s'%(whichsubject, whichdistrib
 # os.system('python plot_game_predictions.py %s %s'%(whichdistrib, eps))
 
 # ''' PLOTTING THE DISTRIBUTION OF PERFORMANCE ACROSS SUBJECTS FOR BOTH DISTRIBUTIONS ''' 
-# ''' PRODUCES FIG 5B ''' 
+# ''' PRODUCES FIG 6B ''' 
 
 # whichsubject='AllSubjects' 
 # whichdelay='all' 
@@ -142,13 +143,14 @@ os.system('python plot_frac_class.py %s %s %s %s %s'%(whichsubject, whichdistrib
 # os.system('python plot_performance_distrib.py %s %s %s'%(whichsubject, whichdelay, whichITI))
 
 # ''' PLOTTING THE MSE OF THE DIFFERENT MODELS FOR ALL SUBJECTS AND DISTRIBUTIONS ''' 
-# ''' PRODUCES FIG 5D ''' 
+# ''' PRODUCES FIG 6D ''' 
 
 # whichloss='MSE'
 # os.system('python plot_MSE.py %s'%whichloss)
 
-# ''' PLOTTING THE DISTRIBUTION of ITIs ''' 
-# ''' PRODUCES FIG 7G '''
-
-# whichsubject='AllSubjects'
-# os.system('python plot_ITIs.py %s'%whichsubject)
+''' PLOTTING THE DISTRIBUTION of ITIs ''' 
+''' PRODUCES FIG 8G '''
+whichsubject='AllSubjects' 
+whichdelay='all' 
+whichITI='all'
+os.system('python plot_ITIs.py %s %s %s'%(whichsubject, whichdelay, whichITI))
